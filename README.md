@@ -12,7 +12,7 @@
 - 23_candidate_models_term_extraction.R: extraction of gender-specific estimates from all candidate environment models, calculates gender-specific CIs, and creates a table from the linear as well as non-linear candidate models.
 - 24_misc.R: gender-specific intra-class correlations across schols, gene-environemnt correlation with and without parental PGIs. Random effects model comparison table, artificial censoring sensitivity analysis plot, missingness pattern table, confidence intervals for all random effect estimates from the best-fitting model.
 
-31_artificial_censoring.R: creates boostrapped CIs for the artificial censoring sensitivity analysis plot.
-32_fig2a_CI.R: creates boostrapped CIs for figure 2a.
-33_fig2b_CI.R: creates boostrapped CIs for figure 2b.
-34_fig2b_CI.R: creates boostrapped CIs for all random effects from the best-fitting random effects model.
+- 31_artificial_censoring.R: creates boostrapped CIs for the artificial censoring sensitivity analysis plot.
+- 32_fig2a_CI.R: creates boostrapped CIs for figure 2a.
+- 33_fig2b_CI.R: creates boostrapped CIs for figure 2b.
+- 34_fig2b_CI.R: creates boostrapped CIs for all random effects from the best-fitting random effects model.
