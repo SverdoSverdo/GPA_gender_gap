@@ -15,4 +15,4 @@
 - 31_artificial_censoring.R: creates boostrapped CIs for the artificial censoring sensitivity analysis plot.
 - 32_fig2a_CI.R: creates boostrapped CIs for figure 2a.
 - 33_fig2b_CI.R: creates boostrapped CIs for figure 2b.
-- 34_fig2b_CI.R: creates boostrapped CIs for all random effects from the best-fitting random effects model.
+- 34_random_effects_CI.R: creates boostrapped CIs for all random effects from the best-fitting random effects model.
