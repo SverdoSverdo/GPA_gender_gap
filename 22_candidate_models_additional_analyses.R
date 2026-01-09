@@ -5,7 +5,7 @@ source("00_settings.R")
 data <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/final_data.csv")
 
         
- #### 4. TEACHER EA AND GENDER ####
+ #### 1. TEACHER EA AND GENDER ####
 
 data_teacher_edu <- read.csv("temp.data/data_school_teacher_edu_m.csv")
 data_teacher_gender <- read.csv("temp.data/data_school_teacher_gender_m.csv")
@@ -43,7 +43,7 @@ teacher_gender_edu <- lmer(grades_std ~ noncog_g*kjoenn_gy*school_teacher_edu_m+
                            REML = T,
                            control = lmerControl(optimizer = "bobyqa"))
 
-##### 3.1 retrieving estimates #####
+##### 1.1 retrieving estimates #####
 
 fixed_effects_teacher <- summary(teacher_gender_edu)$coefficients
 
@@ -376,4 +376,5 @@ classroom_df[2:ncol(classroom_df)] <- round(classroom_df[2:ncol(classroom_df)],3
 classroom_df[2:ncol(classroom_df)] <- round(classroom_df[2:ncol(classroom_df)],3)
 
 write.table(classroom_df, row.names = F, quote = F, sep = "\t")
+
 
