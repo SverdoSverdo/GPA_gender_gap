@@ -5,120 +5,115 @@ source("00_settings.R")
 data <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/final_data.csv")
 
         
-   #### 1 SCHOOL & FAMILY LEVEL INCOME ####
+ #### 4. TEACHER EA AND GENDER ####
 
-# merging parental income with data
-parental_income <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/10_parental_income.csv")
-  parental_income <- select(parental_income, c(w19_0634_lnr,quantiles))
-  names(parental_income)[2] <- "parental_income"
-  
-# loading in school-level SES data
-ses_data <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/data_school_income_m.csv")
-  ses_data <- merge(ses_data, parental_income, by = "w19_0634_lnr")
-  ses_data$parental_income <- scale(ses_data$parental_income)
+data_teacher_edu <- read.csv("temp.data/data_school_teacher_edu_m.csv")
+data_teacher_gender <- read.csv("temp.data/data_school_teacher_gender_m.csv")
 
-# model that includes school-level SES and parental income
-school_parental_income <-  lmer(grades_std ~ 
-                                  
-                                  noncog_g*kjoenn_g*school_income_m+
-                                  cog_g*kjoenn_g*school_income_m+
-                                  cog_parental_g*kjoenn_g*school_income_m+
-                                  noncog_parental_g*kjoenn_g*school_income_m+
-                                  
-                                  school_income_m*parental_income*kjoenn_g*noncog_g+
-                                  school_income_m*parental_income*kjoenn_g*cog_g+
-                                  
-                                  noncog_g*kjoenn_g*parental_income+
-                                  cog_g*kjoenn_g*parental_income+
-                                  cog_parental_g*kjoenn_g*parental_income+
-                                  noncog_parental_g*kjoenn_g*parental_income+
-                                  
-                                  cog_parental_g*cog_g*kjoenn_g+
-                                  cog_parental_g*noncog_g*kjoenn_g+
-                                  noncog_parental_g*cog_g*kjoenn_g+
-                                  noncog_parental_g*noncog_g*kjoenn_g+
-                                  
-                                  (1 | lopenr_mor)  + (1 | lnr_org),
-                                data = ses_data,
-                                REML = T,
-                                control = lmerControl(optimizer = "bobyqa"))
+data_teacher <- data_teacher_gender %>%
+  filter(w19_0634_lnr %in% data_teacher_edu$w19_0634_lnr)
 
+teacher_gender_edu <- lmer(grades_std ~ noncog_g*kjoenn_gy*school_teacher_edu_m+
+                                        cog_g*kjoenn_gy*school_teacher_edu_m+
+                                        
+                                        cog_parental_g*kjoenn_gy*school_teacher_edu_m+
+                                        noncog_parental_g*kjoenn_gy*school_teacher_edu_m+
+                                        
+                                        cog_parental_g*cog_g*kjoenn_gy+
+                                        cog_parental_g*noncog_g*kjoenn_gy+
+                                        noncog_parental_g*cog_g*kjoenn_gy+
+                                        noncog_parental_g*noncog_g*kjoenn_gy+
+                                        
+                                        noncog_g*kjoenn_gy*school_teacher_gender_m+
+                                        cog_g*kjoenn_gy*school_teacher_gender_m+
+                                        
+                                        cog_parental_g*kjoenn_gy*school_teacher_gender_m+
+                                        noncog_parental_g*kjoenn_gy*school_teacher_gender_m+
+                                        
+                                        cog_parental_g*cog_g*kjoenn_gy+
+                                        cog_parental_g*noncog_g*kjoenn_gy+
+                                        noncog_parental_g*cog_g*kjoenn_gy+
+                                        noncog_parental_g*noncog_g*kjoenn_gy+
+                                        
+                                        school_middle*noncog_g*kjoenn_gy+
+                                        school_middle*cog_g*kjoenn_gy+
+                                        
+                           (1 | lopenr_mor) + (1 | school_year),
+                           data = data_teacher,
+                           REML = T,
+                           control = lmerControl(optimizer = "bobyqa"))
 
-          ##### 1.1 retrieving estimates #####
+##### 3.1 retrieving estimates #####
 
-# fixed effects
-fixed_effects <- summary(school_parental_income)$coefficients
+fixed_effects_teacher <- summary(teacher_gender_edu)$coefficients
 
 # specify the coefficients of interest
-terms <- c("school_income_m", "kjoenn_g:school_income_m","noncog_g:school_income_m", "school_income_m:cog_g","parental_income","kjoenn_g:parental_income")
+terms <- c("school_teacher_gender_m", "kjoenn_gy:school_teacher_gender_m","school_teacher_edu_m","kjoenn_gy:school_teacher_edu_m")
 
 # extract the coefficients and variance-covariance matrix
-coef_model <- fixed_effects[terms, "Estimate"]
-vcov_model <- vcov(school_parental_income)
+coef_model <- fixef(teacher_gender_edu)[terms, "Estimate"]
+vcov_model <- vcov(teacher_gender_edu)
 
-# school and parental SES for boys
-school_ses_boys <- coef_model["school_income_m"] + coef_model["kjoenn_g:school_income_m"] 
-parental_income_boys <- coef_model["parental_income"]+ coef_model["kjoenn_g:parental_income"] 
+# teacher gender and edu  effects for boys
+teacher_edu_boys <- coef_model["school_teacher_edu_m"] + coef_model["kjoenn_gy:school_teacher_edu_m"]
+teacher_gender_boys <- coef_model["school_teacher_gender_m"] + coef_model["kjoenn_gy:school_teacher_gender_m"]
 
-# school and parental SES for girls
-school_ses_girls <- coef_model["school_income_m"] - coef_model["kjoenn_g:school_income_m"] 
-parental_income_girls <- coef_model["parental_income"] - coef_model["kjoenn_g:parental_income"] 
-
-# variance/covariance terms
-var_school_ses <- vcov_model["school_income_m", "school_income_m"]
-var_school_ses_gender <- vcov_model["kjoenn_g:school_income_m", "kjoenn_g:school_income_m"]
-cov_school_ses_gender <- vcov_model["school_income_m", "kjoenn_g:school_income_m"]
+# teacher gender and edu  effects for girls
+teacher_edu_girls <- coef_model["school_teacher_edu_m"]
+teacher_gender_girls <- coef_model["school_teacher_gender_m"] + coef_model["kjoenn_gy:school_teacher_gender_m"]
 
 # variance/covariance terms
-var_parental_income <- vcov_model["parental_income", "parental_income"]
-var_parental_income_gender <- vcov_model["kjoenn_g:parental_income", "kjoenn_g:parental_income"]
-cov_parental_income_gender <- vcov_model["parental_income", "kjoenn_g:parental_income"]
+var_teacher_edu <- vcov_model["school_teacher_edu_m", "school_teacher_edu_m"]
+var_teacher_edu_gender <- vcov_model["kjoenn_gy:school_teacher_edu_m", "kjoenn_gy:school_teacher_edu_m"]
+cov_teacher_edu_gender <- vcov_model["school_teacher_edu_m", "kjoenn_gy:school_teacher_edu_m"]
+
+# variance/covariance terms
+var_teacher_gender <- vcov_model["school_teacher_gender_m", "school_teacher_gender_m"]
+var_teacher_gender_gender <- vcov_model["kjoenn_gy:school_teacher_gender_m", "kjoenn_gy:school_teacher_gender_m"]
+cov_teacher_gender_gender <- vcov_model["school_teacher_gender_m", "kjoenn_gy:school_teacher_gender_m"]
 
 # standard errors
-se_school_ses_girls <- sqrt(var_school_ses+var_school_ses_gender+ 2* (-1)* cov_school_ses_gender)
-se_parental_income_girls <- sqrt(var_parental_income+var_parental_income_gender+ 2* (-1)* cov_parental_income_gender)
+se_teacher_edu_girls <- sqrt(var_teacher_edu+var_teacher_edu_gender+ 2* (-1)* cov_teacher_edu_gender)
+se_teacher_gender_girls <- sqrt(var_teacher_gender+var_teacher_gender_gender+ 2* (-1)* cov_teacher_gender_gender)
 
-se_school_ses_boys <- sqrt(var_school_ses+var_school_ses_gender+ 2* (1)* cov_school_ses_gender)
-se_parental_income_boys <- sqrt(var_parental_income+var_parental_income_gender+ 2* (1)* cov_parental_income_gender)
-
+se_teacher_edu_boys <- sqrt(var_teacher_edu+var_teacher_edu_gender+ 2* (1)* cov_teacher_edu_gender)
+se_teacher_gender_boys <- sqrt(var_teacher_gender+var_teacher_gender_gender+ 2* (1)* cov_teacher_gender_gender)
 
 # calculate 95% confidence intervals
-ci_school_ses_boys <- c(school_ses_boys - 1.96*se_school_ses_boys, 
-                    school_ses_boys + 1.96*se_school_ses_boys)
-ci_school_ses_girls <- c(school_ses_girls - 1.96*se_school_ses_girls, 
-                     school_ses_girls + 1.96*se_school_ses_girls)
-ci_parental_income_boys <- c(parental_income_boys - 1.96*se_parental_income_boys,
-                      parental_income_boys + 1.96*se_parental_income_boys)
-ci_parental_income_girls <- c(parental_income_girls - 1.96*se_parental_income_girls,
-                       parental_income_girls + 1.96*se_parental_income_girls)
+ci_teacher_gender_boys <- c(teacher_gender_boys - 1.96*se_teacher_edu_boys,
+                            teacher_gender_boys + 1.96*se_teacher_edu_boys)
+ci_teacher_gender_girls <- c(teacher_gender_girls - 1.96*se_teacher_gender_girls,
+                             teacher_gender_girls + 1.96*se_teacher_gender_girls)
+ci_teacher_edu_boys <- c(teacher_edu_boys - 1.96*se_teacher_edu_boys,
+                         teacher_edu_boys + 1.96*se_teacher_edu_boys)
+ci_teacher_edu_girls <- c(teacher_edu_girls - 1.96*se_teacher_edu_girls,
+                          teacher_edu_girls + 1.96*se_teacher_edu_girls)
 
+# putting it all into one DF
+teacher_gender_edu_df <- data.frame(
+  term = c("Proportion of female teachers (boys)", "Proportion of female teachers (girls)", "Teacher educational attainment (boys)", "Teacher educational attainment (girls)"),
+  estimate = c(teacher_gender_boys,teacher_gender_girls,teacher_edu_boys,teacher_edu_girls),
+  ci.lower = c(ci_teacher_gender_boys[1],ci_teacher_gender_girls[1], ci_teacher_edu_boys[1], ci_teacher_edu_girls[1]),
+  ci.upper = c(ci_teacher_gender_boys[2],ci_teacher_gender_girls[2], ci_teacher_edu_boys[2], ci_teacher_edu_girls[2])
+)
 
-# gender-specific results
-school_ses_parental_gender <- data.frame(
-  term = c("School SES (boys)", "School SES (girls)", 
-           "Parental income (boys)", "Parental income (girls)"),
-  estimate = c(school_ses_boys,school_ses_girls,
-               parental_income_boys,parental_income_girls),
-  ci.lower = c(ci_school_ses_boys[1],ci_school_ses_girls[1],
-               ci_parental_income_boys[1],ci_parental_income_girls[1]),
-  ci.upper = c(ci_school_ses_boys[2],ci_school_ses_girls[2],
-               ci_parental_income_boys[2],ci_parental_income_girls[2]))
+# extracting CIs for non-gendered terms
+teacher_gender_PGI <- tidy(teacher_gender_edu)
+teacher_gender_PGI <- select(teacher_gender_PGI, c(term,estimate,std.error))
+teacher_gender_PGI <- teacher_gender_PGI[teacher_gender_PGI$term %in% c("noncog_g:school_teacher_edu_m","school_teacher_edu_m:cog_g",
+                                                                        "noncog_g:school_teacher_gender_m","cog_g:school_teacher_gender_m"),]
 
-# gene-environment interactions
-school_parental_PGI <- tidy(school_parental_income)
-school_parental_PGI <- select(school_parental_PGI, c(term,estimate,std.error))
-school_parental_PGI <- school_parental_PGI[school_parental_PGI$term %in% c("noncog_g:school_income_m","school_income_m:cog_g",
-                                                                           "noncog_g:parental_income","cog_g:parental_income"),]
-school_parental_PGI$ci.upper <- school_parental_PGI$estimate + school_parental_PGI$std.error*1.96
-school_parental_PGI$ci.lower <- school_parental_PGI$estimate - school_parental_PGI$std.error*1.96
-school_parental_PGI$std.error <- NULL
+teacher_gender_PGI$ci.upper <- teacher_gender_PGI$estimate + teacher_gender_PGI$std.error*1.96
+teacher_gender_PGI$ci.lower <- teacher_gender_PGI$estimate - teacher_gender_PGI$std.error*1.96
+teacher_gender_PGI$std.error <- NULL
 
 # combining the two DFs
-school_ses_parental_df <- rbind(school_ses_parental_gender,school_parental_PGI)
-school_ses_parental_df[2:ncol(school_ses_parental_df)] <- round(school_ses_parental_df[2:ncol(school_ses_parental_df)],3)
+teacher_gender_edu_df <- rbind(teacher_gender_edu_df,teacher_gender_PGI)
+teacher_gender_edu_df[2:ncol(teacher_gender_edu_df)] <- round(teacher_gender_edu_df[2:ncol(teacher_gender_edu_df)],3)
 
+teacher_gender_edu_df[2:ncol(teacher_gender_edu_df)] <- round(teacher_gender_edu_df[2:ncol(teacher_gender_edu_df)],3)
 
-write.table(school_ses_parental_df, row.names = F, quote = F, sep = "\t")
+write.table(teacher_gender_edu_df, row.names = F, quote = F, sep = "\t")
 
 
         #### 2 TEACHER TURNOVER POP CONTROL ####
@@ -381,3 +376,4 @@ classroom_df[2:ncol(classroom_df)] <- round(classroom_df[2:ncol(classroom_df)],3
 classroom_df[2:ncol(classroom_df)] <- round(classroom_df[2:ncol(classroom_df)],3)
 
 write.table(classroom_df, row.names = F, quote = F, sep = "\t")
+
