@@ -49,16 +49,17 @@ predict_fun <- function(fit) {
   # parameters we need
   random_var <- as.matrix(VarCorr(fit)$lnr_org)
   
-  gender_sd <- sqrt(random_var["kjoenn_g", "kjoenn_g"])
-  intercept_sd <- sqrt(random_var["(Intercept)", "(Intercept)"])
-  sigma_gender_int <- random_var["kjoenn_g", "(Intercept)"]
-  sigma_noncog_int <- random_var["noncog_g", "(Intercept)"]
-  sigma_gender_noncog_int <- random_var["kjoenn_g:noncog_g", "(Intercept)"]
+  sd_gender <- sqrt(random_var["kjoenn_g", "kjoenn_g"])
+  sd_intercept <- sqrt(random_var["(Intercept)", "(Intercept)"])
+
+  cov_gender_int <- random_var["kjoenn_g", "(Intercept)"] #gender-intercept covariance
+  cov_noncog_int <- random_var["noncog_g", "(Intercept)"] #NonCog-intercept covariance
+  cov_noncoggender_int <- random_var["kjoenn_g:noncog_g", "(Intercept)"] #gender*NonCog-intercept covariance
   
-  mult_girls <- (sigma_noncog_int - sigma_gender_noncog_int) / intercept_sd
-  mult_boys <- (sigma_noncog_int + sigma_gender_noncog_int) / intercept_sd
+  mult_girls <- (cov_noncog_int - cov_noncoggender_int) / sd_intercept
+  mult_boys <- (cov_noncog_int + cov_noncoggender_int) / sd_intercept
   
-  school_slope_diff <- sigma_gender_int / intercept_sd
+  school_slope_diff <- cov_gender_int / sd_intercept
   
   gender_effect_boys <- beta_G
   gender_effect_girls <- beta_G * (-1)
