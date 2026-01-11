@@ -26,10 +26,8 @@ int_gain <- function(fit) {
   random_var <- as.matrix(VarCorr(fit)$lnr_org)
   
   sd_intercept <- sqrt(random_var["(Intercept)", "(Intercept)"]) #SD of intercept
-  
   cov_gender_int <- random_var["kjoenn_g", "(Intercept)"] #gender-intercept covariance
   cov_noncog_int <- random_var["noncog_g", "(Intercept)"] #NonCog-intercept covariance
-
   cov_noncoggender_int <- random_var["kjoenn_g:noncog_g", "(Intercept)"] #gender*NonCog-intercept covariance
 
   # expected random slopes given this school's intercept (+1 SD)
