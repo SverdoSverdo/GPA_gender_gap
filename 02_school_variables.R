@@ -838,7 +838,7 @@ names(school_gender)[2] <- "year"
 u_data <- fread("N:/durable/data/questionnaires/Ungdata_NOVA/01_data/Ungdata_NOVA_2015-2024.csv")
 
 # list of items and their description
-variabel_list <- read_excel("M:/p805-sverrbo/Data Manager/Ung_data_cleaning/Variabeloversikt_Ungdata_temp.xlsx")
+variabel_list <- read_excel("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/Variabeloversikt_Ungdata_temp.xlsx")
 
 # variables on ext. behavior and positive school climate
 my_variables <- c("atfpro1", "atfpro12", "mobb1", "skolprob4", "mobb2", "atfpro15","atfpro18","atfpro16","atfpro25",
@@ -1088,3 +1088,4 @@ ext_count <- ext_count[ext_count$school_year1 %in% final_sample$school_year
 # out of the six items, which one had the highest response rate?
 ext_count$max_response <- apply(ext_count[, 3:8], 1, max)
 sum(ext_count$max_response)
+
