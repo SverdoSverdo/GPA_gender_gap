@@ -105,6 +105,7 @@ fixed_effects$t_value <- NULL
   
           ##### 2.1 defining terms for plotting #####
   
+  
 # extract fixed effects
 beta_noncog <- fixef(best_model)["noncog_g"]
 beta_noncoggender <- fixef(best_model)["kjoenn_g:noncog_g"]
@@ -132,10 +133,25 @@ cov_noncoggender_int <- random_var["kjoenn_g:noncog_g", "(Intercept)"] #gender*N
 cov_noncoggender_gender <- random_var["kjoenn_g:noncog_g", "kjoenn_g"] #gender*NonCog-gender covariance
 cov_noncoggender_noncog <- random_var["kjoenn_g:noncog_g","noncog_g"] #gender*NonCog-noncog covariance
 
-
 #the mean gender gap
 mean_observed_gap <- beta_gender * 2  
 
+# extract school-level random slopes for gender (blup = intercept + gender slope)
+re_schools <- ranef(best_model)$lnr_org
+names(re_schools) <- c("intercept","gender","noncog","gender_noncog")
+re_schools <- as.data.frame(re_schools)
+re_schools$lnr_org <- row.names(re_schools)
+
+
+school_blups <- re_schools %>%
+  as.data.frame() %>%
+  # assuming gender slope column is named something like "gender" or "genderMale"
+  rename(re_gender = gender ) %>%  # adjust column name to match your model
+  mutate(
+    school_gender_gap = (beta_gender + re_gender) * 2,
+    nonCog_boys = beta_noncog_boys + noncog + gender_noncog,
+    nonCog_girls = beta_noncog_girls + noncog - gender_noncog
+  )
 
           ##### 2.1 variance in gender effects #####
 
@@ -164,7 +180,7 @@ gender_SD <- ggplot(df_density, aes(x = gender_gap, y = density, fill = "Gender 
  ) +
   scale_fill_manual(values = c("Gender Gap" = "purple"), name = NULL) +
   annotate("text", x = -.65, y = max(df_density$density) * 0.54,
-           label = sprintf("β = %.2f (SD = %.2f)", mean_observed_gap, sd_gender*2),
+           label = sprintf("N2 = %.2f (SD = %.2f)", mean_observed_gap, sd_gender*2),
            hjust = 1, size = figure_annotation_size, color = "black", family = "serif") +
   theme_sverdo() +
   theme(
@@ -214,10 +230,10 @@ scale_x_continuous(
 )+
   scale_fill_manual(values = c("Boys" = color_boys, "Girls" = color_girls),name = NULL) +
   annotate("text", x = 0.075, y = max(plot_data$density) * 0.50,
-           label = paste0("Girls: β = ", round(beta_noncog_girls, 2), " (SD = ", round(sd_girls, 2),")"),
+           label = paste0("Girls: N2 = ", round(beta_noncog_girls, 2), " (SD = ", round(sd_girls, 2),")"),
            hjust = 1, size = figure_annotation_size, color = color_girls, family = "serif") +
   annotate("text", x = 0.075, y = max(plot_data$density) * 0.58,
-           label = paste0("Boys: β = ", round(beta_noncog_boys, 2), " (SD = ", round(sd_boys, 2),")"),
+           label = paste0("Boys: N2 = ", round(beta_noncog_boys, 2), " (SD = ", round(sd_boys, 2),")"),
            hjust = 1, size = figure_annotation_size, color = color_boys, family = "serif") +
   theme_sverdo()+
   theme(
@@ -228,8 +244,8 @@ scale_x_continuous(
 
 
 tiff("plots/PGI_gender_SD.tiff", 
-     width = 180, 
-     height = 90, 
+     width = 179, 
+     height = 89, 
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -266,28 +282,32 @@ line_data <- data.frame(
                   levels = c("Girls", "Boys"))
 )
 
-# x values for the density curve OVER THE FULL RANGE
 x_density <- seq(-3 * sd_intercept, 3 * sd_intercept, length.out = 200)
 
-# calculate density values
-y_density <- dnorm(x_density, mean = 0, sd = sd_intercept)
+# create empirical density from school_blups intercepts
+dens <- density(school_blups$intercept)
+y_density_empirical <- approx(dens$x, dens$y, xout = x_density)$y
+y_density_empirical[is.na(y_density_empirical)] <- 0
 
 # adjusting y-axis for plotting
 desired_bottom <- -1.2
 desired_height <- 1.0
 
-# scale the density
-y_density_scaled <- desired_bottom + (y_density / max(y_density)) * desired_height
+# scale the same way as before
+y_density_scaled_empirical <- desired_bottom + 
+  (y_density_empirical / max(y_density_empirical, na.rm = TRUE)) * desired_height
 
-# create density data frame
-density_data <- data.frame(
+# create density dataframe
+density_data_empirical <- data.frame(
   x = c(x_density, rev(x_density)),
-  y = c(y_density_scaled, rep(desired_bottom, length(y_density_scaled)))
+  y = c(y_density_scaled_empirical, 
+        rep(desired_bottom, length(y_density_scaled_empirical)))
 )
+
 
 # plot
 gender_int_plot <- ggplot() +
-  geom_polygon(data = density_data,
+  geom_polygon(data = density_data_empirical,
                aes(x = x, y = y),
                fill = "grey",
                alpha = 0.7) +
@@ -317,9 +337,9 @@ gender_int_plot <- ggplot() +
     legend.margin = margin(t = -5, b = -18),
     plot.margin = margin(t = -8, r = 10, b = 20, l = 10))
 
-tiff("plots/gender_intercept_cor.tiff", 
-     width = 90, 
-     height = 90,  
+tiff("plots/figure1.tiff", 
+     width = 89, 
+     height = 89,  
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -336,7 +356,9 @@ mult_gender_noncog_girls <- (cov_noncog_gender - (cov_noncoggender_gender)) / sd
 mult_gender_noncog_boys <- (cov_noncog_gender + (cov_noncoggender_gender)) / sd_gender
 
 # create sequence of gender slope values in SD units
-gender_slope_sd_vals <- seq(-3, 3, by = 0.1)
+sd_min <- (min(density_data$x) - mean_observed_gap) / sd_gender
+sd_max <- (max(density_data$x) - mean_observed_gap) / sd_gender
+gender_slope_sd_vals <- seq(sd_min, sd_max, by = 0.1)
 
 # convert SD units to actual gender gap values for x-axis
 gender_gap_actual <- gender_slope_sd_vals * sd_gender + mean_observed_gap
@@ -345,38 +367,33 @@ gender_gap_actual <- gender_slope_sd_vals * sd_gender + mean_observed_gap
 pred_girls <- beta_noncog_girls + mult_gender_noncog_girls * gender_slope_sd_vals
 pred_boys <- beta_noncog_boys + mult_gender_noncog_boys * gender_slope_sd_vals
 
-# density plot for theoretical distribution of school-specific gender gap
-gender_slope_vals_fine <- seq(-4, 4, by = 0.01)
-  gender_gap_actual_fine <- gender_slope_vals_fine * sd_gender + mean_observed_gap
-  density_vals <- dnorm(gender_slope_vals_fine, mean = 0, sd = 1)  
-
-# scale density to be visible on the plot
-max_y_value <- 0.02  
-density_scaled <- density_vals * max_y_value / max(density_vals)
-
-# create density dataframe
-df_density <- data.frame(
-  gender_gap = gender_gap_actual_fine,
-  density = density_scaled
-)
-
 # create lines dataframe with actual gender gap values
 df_lines <- data.frame(
-  gender_gap = rep(gender_gap_actual, 2), 
+  gender_gap = rep(gender_gap_actual, 2),
   expected_slope = c(pred_boys, pred_girls),
   gender = rep(c("Boys", "Girls"), each = length(gender_gap_actual))
 )
 
-#squaring to get variance explained
+# squaring to get variance explained
 df_lines$expected_slope <- df_lines$expected_slope^2
- Plot
+
+# empirical density from school_blups
+density_data <- density(school_blups$school_gender_gap)
+
+# scale density to be visible on the plot
+max_y_value <- 0.02
+df_density <- data.frame(
+  gender_gap = density_data$x,
+  density = density_data$y * max_y_value / max(density_data$y)
+)
+
 gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, color = gender)) +
   geom_line(linewidth = .5) +
   geom_ribbon(data = df_density, 
               aes(x = gender_gap, ymin = 0, ymax = density), 
               fill = "purple", alpha = 0.3, inherit.aes = FALSE) +
   scale_color_manual(
-    values = c("Girls" = color_boys, "Boys" = color_girls),
+    values = c("Girls" = color_girls, "Boys" = color_boys),
     labels = c("Girls" = "Girls", "Boys" = "Boys")
   ) +
   labs(
@@ -386,11 +403,11 @@ gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, c
     color = NULL
   ) +
   theme_minimal() +
-  scale_x_continuous(limits = range(df_lines$gender_gap),
-                     breaks = seq(-.80, -.30, by = 0.1)) +
+  scale_x_continuous(limits = c(-.76, -.36),
+                     breaks = seq(-.70, -.40, by = 0.1)) +
   geom_segment(aes(x = mean_observed_gap, xend = mean_observed_gap, y = 0, yend = 0.036), 
                linetype = "dashed", alpha = 1,color = "black",linewidth = .4)+
-  annotate("text", x = mean_observed_gap, y = 0.037, label = "average school-level gender gap",
+  annotate("text", x = mean_observed_gap, y = 0.037, label = "average GPA gender gap",
            size = figure_annotation_size-.5, hjust = .25, vjust = 0)+
   theme_sverdo()+
   theme(
@@ -400,9 +417,9 @@ gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, c
     plot.margin = margin(t = -8, r = 10, b = 20, l = 10))
   
 
-tiff("plots/gender_noncog_cor.tiff", 
-     width = 90, 
-     height = 90,  
+tiff("plots/figure4.tiff", 
+     width = 89, 
+     height = 89,  
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -411,97 +428,66 @@ gender_noncog_plot
 
 dev.off()
  
+
           ##### 2.5 figure 2a #####
 
-# slope of NonCog over SD for boys and girls
-mult_noncog_girls <- (cov_noncog_int - cov_noncoggender_int) / sd_intercept
-mult_noncog_boys <- (cov_noncog_int + cov_noncoggender_int) / sd_intercept
-
-# boys with -1 SD NonCog
-int_gain_boys_low <- sd_intercept + 
-  (mult_noncog_boys * -1)+
-  (mult_int_boys)
-
-# boys with +1 SD NonCog
-int_gain_boys_high <- sd_intercept + 
-  (mult_noncog_boys * 1)+
-  (mult_int_boys)
-
-# girls with -1 SD NonCog
-int_gain_girls_low <- sd_intercept + 
-  (mult_noncog_girls * -1)+
-  (mult_int_girls)
-
-# girls with +1 SD NonCog
-int_gain_girls_high <- sd_intercept + 
-  (mult_noncog_girls * 1)+
-  (mult_int_girls)
-
-# create plot data
-plot_data <- data.frame(
-  Gender = rep(c("Boys", "Girls"), each = 2),
-  NonCog = rep(c("-1 SD", "+1 SD"), 2),
-  Expected_Gain = c(int_gain_boys_low, int_gain_boys_high, 
-                    int_gain_girls_low, int_gain_girls_high)
-)
-
-# make NonCog a factor with correct order
-plot_data$NonCog <- factor(plot_data$NonCog, levels = c("-1 SD", "+1 SD"))
-
-# adding CIS from bootstrapping from the cluster
-int_gain_CIs <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/cluster_analyses/fig2a_CI.csv")
-
-# adding parameters names back into the DF
-names(int_gain_CIs) <- c("int_gain_boys_low", "int_gain_boys_high","int_gain_girls_low",
-                  "int_gain_girls_high")
-
-# calculating 95% CIs for each parameter
-ci_data <- data.frame(
-  NonCog = rep(c("-1 SD", "+1 SD"), 2),
-  Gender = rep(c("Boys", "Girls"), each = 2),
-  lower = c(
-    quantile(int_gain_CIs$int_gain_boys_low, 0.025),
-    quantile(int_gain_CIs$int_gain_boys_high, 0.025),
-    quantile(int_gain_CIs$int_gain_girls_low, 0.025),
-    quantile(int_gain_CIs$int_gain_girls_high, 0.025)
-  ),
-  upper = c(
-    quantile(int_gain_CIs$int_gain_boys_low, 0.975),
-    quantile(int_gain_CIs$int_gain_boys_high, 0.975),
-    quantile(int_gain_CIs$int_gain_girls_low, 0.975),
-    quantile(int_gain_CIs$int_gain_girls_high, 0.975)
+# extract nonCog blups for boys and girls separately
+school_blups_long <- school_blups %>%
+  pivot_longer(
+    cols      = c(nonCog_boys, nonCog_girls),
+    names_to  = "Gender",
+    values_to = "nonCog_blup"
+  ) %>%
+  mutate(
+    Gender = recode(Gender,
+                    "nonCog_boys"  = "Boys",
+                    "nonCog_girls" = "Girls"
+    )
   )
-)
 
-# merge CIs with plot data
-plot_data <- merge(plot_data, ci_data, by = c("Gender", "NonCog"))
 
-# plot
-figure2a <- ggplot(plot_data, aes(x = NonCog, y = Expected_Gain, fill = Gender)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.4) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), 
-                position = position_dodge(width = 0.5), 
-                width = 0.1) +
-  scale_fill_manual(values = c("Boys" = color_boys, "Girls" = color_girls)) +
-  labs(x = "Polygenic index for non-cognitive skills", 
-       y = "Association between school-level GPA and individual GPA",
-       fill = "Gender") +
-  theme_sverdo()+
-  scale_y_continuous(breaks = seq(0, 0.4, 0.05)) +
+figure2a <- ggplot(school_blups_long, aes(x = Gender, y = nonCog_blup, fill = Gender)) +
+  geom_violin(alpha = 1, linewidth = 0.3, key_glyph = "rect") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray30") +
+  scale_y_continuous(
+    breaks = seq(0, 0.3, by = 0.05),
+    expand = expansion(add = c(0.01, 0.01))
+  ) +
+  scale_fill_manual(values = c("Boys" = color_boys, "Girls" = color_girls), guide = "none") +
+  labs(y = "School-specific NonCog-GPA slopes", x = NULL, fill = NULL) +
+  theme_sverdo() +
   theme(
-    legend.position = c(0.85, 0.85),
-    panel.grid.major = element_line(color = "grey95", size = 0.3),
+    plot.caption = element_text(hjust = 0.5, face = "bold", vjust = 1),
     panel.grid.minor = element_blank(),
-    legend.key.width = unit(0.3, "cm"),
-    legend.key.height = unit(0.3, "cm"),
-    legend.title = element_text(size = 5, face = "bold"),  
-    legend.text = element_text(size = 5)  
-  )
+    panel.grid.major = element_line(color = "grey92", linewidth = 0.3),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  # legend squares
+  geom_point(data = data.frame(x = 2.3, y = 0.06),
+             aes(x = x, y = y),
+             shape = 22, size = 4,
+             fill = color_boys, color = color_boys, stroke = 0.3,
+             inherit.aes = FALSE) +
+  geom_point(data = data.frame(x = 2.3, y = 0.04),
+             aes(x = x, y = y),
+             shape = 22, size = 4,
+             fill = color_girls, color = color_girls, stroke = 0.3,
+             inherit.aes = FALSE) +
+  geom_text(data = data.frame(
+    x = rep(2.4, 2),
+    y = c(0.06, 0.04),
+    label = c("Boys", "Girls")
+  ),
+  aes(x = x, y = y, label = label),
+  inherit.aes = FALSE,
+  hjust = 0,
+  size = 2.2,
+  color = "black")
 
-
-tiff("plots/int_gains.tiff", 
-     width = 90, 
-     height = 90,  
+tiff("plots/figure2a.tiff", 
+     width = 89, 
+     height = 89,  
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -509,7 +495,6 @@ tiff("plots/int_gains.tiff",
 figure2a
 
 dev.off()
-
 
 
 
@@ -559,10 +544,10 @@ plot_data <- expand.grid(
 
           ##### 2.7 figure 2b #####
 
-# version sent to the cluster for faster computation
+#Version sent to the cluster for faster computation
 all_preds <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/cluster_analyses/fig2b_CI.csv")
-
-# merging with point esimates
+names(all_preds)[2] <- "School_Performance"
+all_preds$Expected_GPA <- NULL
 point_estimates <- select(plot_data, c(NonCog,School_Performance,Gender,Expected_GPA))
 
 ci_summary <- merge(all_preds, point_estimates, by = c("NonCog","School_Performance","Gender"))
@@ -585,7 +570,7 @@ plot_data_2b <- ci_summary %>%
 
 # calculating the differences in GPA of different groups
 pm <- function(noncog, school, gender) {
-  plot_data_2b$Expected_GPA[plot_data_2c$NonCog == noncog & plot_data_2b$School_Performance == school & plot_data_2b$Gender == gender]
+  plot_data_2b$Expected_GPA[plot_data_2b$NonCog == noncog & plot_data_2b$School_Performance == school & plot_data_2b$Gender == gender]
 }
 
 difference_df <- plot_data_2b %>%
@@ -634,7 +619,7 @@ figure2b <- ggplot(plot_data_2b, aes(x = x_pos, y = Expected_GPA,
     panel.grid.minor = element_blank(),
   ) +
   geom_text(data = data.frame(
-    x = 0.175,
+    x = 0.16,
     y = -1.05,
     label = "Gender and school-level GPA"
   ),
@@ -673,7 +658,7 @@ figure2b <- ggplot(plot_data_2b, aes(x = x_pos, y = Expected_GPA,
   geom_text(data = data.frame(
     x = rep(0.132, 4),
     y = c(-1.20, -1.32, -1.44, -1.56),
-    label = c("Girls +2 SD", "Boys +2 SD", "Girls -2 SD", "Boys -2 SD")
+    label = c("Girls, +2 SD", "Boys, +2 SD", "Girls, -2 SD", "Boys, -2 SD")
   ),
   aes(x = x, y = y, label = label),
   inherit.aes = FALSE,
@@ -683,8 +668,8 @@ figure2b <- ggplot(plot_data_2b, aes(x = x_pos, y = Expected_GPA,
 
 
 tiff("plots/figure2b.tiff", 
-     width = 90, 
-     height = 90, 
+     width = 89, 
+     height = 89, 
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -824,8 +809,8 @@ figure2c_2 <- ggplot(plot_data %>% filter(Gender == "Boys"),
 
 
 tiff("plots/figure2c.tiff", 
-     width = 180, 
-     height = 90,  # adjust as needed
+     width = 178, 
+     height = 89,  
      units = "mm", 
      res = 600,
      compression = "lzw")
@@ -838,7 +823,77 @@ grid.arrange(
 
 dev.off()
 
+          ##### Fig 2 #####
 
+# tighten the margin between c_1 and c_2 specifically
+figure2c_1_tight <- figure2c_1 + theme(plot.margin = margin(t = 5.5, r = 2,   b = 5.5, l = 5.5))
+figure2c_2_tight <- figure2c_2 + theme(plot.margin = margin(t = 5.5, r = 5.5, b = 5.5, l = 2))
+
+bottom_row <- plot_grid(figure2c_1_tight, figure2c_2_tight, ncol = 2, align = "hv")   # no label
+
+top_row <- plot_grid(figure2a, figure2b, ncol = 2, align = "hv",
+                     labels = c("a", "b"),
+                     label_fontfamily = "serif",
+                     label_fontface = "bold",
+                     label_size = 18)
+
+full_plot <- plot_grid(top_row, bottom_row, nrow = 2,
+                       labels = c("", "c"),          # "" skips top row (already a/b), "c" tags bottom
+                       label_fontfamily = "serif",
+                       label_fontface = "bold",
+                       label_size = 18)
+
+tiff("plots/figure2.tiff",
+     width = 179,
+     height = 179,
+     units = "mm",
+     res = 600,
+     compression = "lzw")
+full_plot
+dev.off()
+
+        #### 3. CONFIDENCE INTERVALS FOR MODEL PARAMETERS ####
+
+# fetching estimates
+ranef_CI <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/cluster_analyses/random_effects_CIs.csv")
+names(ranef_CI) <- c("gender_slope", "gender_mult_girls","gender_mult_boys",
+                     "gender_mult_diff","int_mult_girls","int_mult_boys","int_mult_diff")
+
+# 85 and 95% CIs for each 
+ci_results <- data.frame(
+  variable = names(ranef_CI),
+  lower_ci_95 = sapply(ranef_CI, function(x) quantile(x, 0.025)),
+  upper_ci_95 = sapply(ranef_CI, function(x) quantile(x, 0.975)),
+  lower_ci_85 = sapply(ranef_CI, function(x) quantile(x, 0.075)),
+  upper_ci_85 = sapply(ranef_CI, function(x) quantile(x, 0.925)))
+
+# fetching point estimates
+random_effects <- data.frame(
+  variable = c("gender_slope", "gender_mult_girls", "gender_mult_boys",
+               "gender_mult_diff", "int_mult_girls", "int_mult_boys", "int_mult_diff"),
+  
+  estimate = c(
+    gender_slope = gender_slope,
+    
+    gender_mult_girls = mult_gender_noncog_girls,
+    gender_mult_boys = mult_gender_noncog_boys,
+    gender_mult_diff = mult_gender_noncog_boys - mult_gender_noncog_girls,
+    
+    int_mult_girls = mult_noncog_girls,
+    int_mult_boys = mult_noncog_boys,
+    int_mult_diff = mult_noncog_boys - mult_noncog_girls))
+
+
+# merging
+random_effects <- merge(random_effects, ci_results, by = "variable")
+  random_effects[2:ncol(random_effects)] <- round(random_effects[2:ncol(random_effects)],3)
+
+random_effects_table <- random_effects %>%
+  mutate(
+    CI_85 = sprintf("(%.3f, %.3f)", lower_ci_85, upper_ci_85),
+    CI_95 = sprintf("(%.3f, %.3f)", lower_ci_95, upper_ci_95)
+  ) %>%
+  select(variable,estimate, CI_85, CI_95)
 
 
   
