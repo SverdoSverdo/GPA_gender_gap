@@ -10,7 +10,7 @@
 - 21_descriptives.R: computes descriptive statistics
 - 22_candidate_models_additional_analyses.R: includes additional analyses performed for some of the candidate models.
 - 23_candidate_models_term_extraction.R: extraction of gender-specific estimates from all candidate environment models, calculates gender-specific CIs, and creates a table from the linear as well as non-linear candidate models.
-- 24_misc.R: gender-specific intra-class correlations across schols, gene-environment correlation with and without parental PGIs. Random effects model comparison table, artificial censoring sensitivity analysis plot, missingness pattern table, confidence intervals for all random effect estimates from the best-fitting model.
+- 24_misc.R: gender-specific intra-class correlations across schols, gene-environment correlation with and without parental PGIs. Random effects model comparison table, artificial censoring sensitivity analysis plot, missingness pattern table, confidence intervals for all random effect estimates from the best-fitting model. Comparison of legal reported gender and sex at birth.
 - 25_tests_and_grades.R: Additional analyses that include random and fixed effects models for specific subject grades and test scores. Also creates plots and tables
 
 - 31_artificial_censoring.R: creates bootstrapped CIs for the artificial censoring sensitivity analysis plot.
