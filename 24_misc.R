@@ -117,7 +117,7 @@ for(i in 1:9) {
 
 # for nice plotting names:)
 rGE$variable <- c("School-level SES","Classroom-level proportion of Girls","Classroom-level GPA","Teacher educational attainment",   
-                     "Teacher female proportion", "Teacher turnover", "School-level proportion of girls", "Positive school climate",          
+                     "Proportion of female teachers", "Teacher turnover", "School-level proportion of girls", "Positive school climate",          
                      "Externalizing behavior" )
 
 # add a tiny bit to teacher turnover (basically zero) so that it shows up on the plot
@@ -181,7 +181,7 @@ rGE_plot <- ggplot(rGE_long, aes(x = position, y = estimate, fill = estimate_typ
     legend.text = element_text(size = 7),
     legend.position = "bottom")
 
-tiff("plots/rGE.tiff", 
+tiff("plots/supp_figure1.tiff", 
      width = 140, 
      height = 140,  
      units = "mm", 
@@ -346,7 +346,7 @@ articifial_censor_plot <- ggplot(plot_data, aes(x = x_position, y = estimate, co
     legend.position = "none"
   )
 
-tiff("plots/artificial_censoring.tiff", 
+tiff("plots/supp_figure6.tiff", 
      width = 120, 
      height = 90,  
      units = "mm", 
