@@ -187,12 +187,13 @@ candidate_env_cor <- cor(candidate_env_cor, use = "pairwise")
 colnames(candidate_env_cor) <- 1:ncol(candidate_env_cor)
 
 
-tiff("plots/candidate_env_cor.tiff", 
-     width = 90, 
-     height = 90,  
-     units = "mm", 
+tiff("plots/supp_figure3.tiff",
+     width = 89,
+     height = 68,
+     units = "mm",
      res = 600,
      compression = "lzw")
+
 
 corrplot(candidate_env_cor,
          method = "color",
@@ -203,8 +204,8 @@ corrplot(candidate_env_cor,
          number.cex = 0.4,
          tl.offset = .52,
          cl.pos = "n",
-         tl.cex = .45,      
-         family = "serif") 
+         tl.cex = .45,
+         family = "serif")
 
 dev.off()
 
