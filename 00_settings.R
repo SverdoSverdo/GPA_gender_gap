@@ -6,7 +6,7 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(dplyr, tidyr,tidyverse, ggplot2, data.table,readxl,
                lavaan,psych,parallel,purrr,stringr,lme4, lmerTest,tools,
                broom.mixed,ggplot2,ggpubr,gridExtra,parallel, corrplot, 
-               performance, grid, reshape2)
+               performance, grid, reshape2, ggh4x, cowplot, patchwork, ggpattern)
 
         #### 2. PLOT SETTINGS ####
 
