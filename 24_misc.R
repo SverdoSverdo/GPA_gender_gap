@@ -393,3 +393,17 @@ for(i in 1:nrow(missing_desc)) {
 missing_desc[2:ncol(missing_desc)] <- round(missing_desc[2:ncol(missing_desc)],3)
 
 write.table(missing_desc, row.names = F, quote = F, sep = "\t")
+
+
+       #### 7. GENDER AND SEX ####
+data <- read.csv("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/final_data.csv")
+
+MBR <- read_sav("N:/durable/data/registers/medical_birth_registry/01_data/data_v1.0/H704_MFR_data_adj.sav")
+sex <- MBR[c("ID_BARN", "KJONN")]
+sex$KJONN[sex$KJONN == 2] <- -1
+
+gender <- data[c("w19_0634_lnr", "kjoenn")]
+
+sex_gender <- merge(gender, sex, by.x = "w19_0634_lnr", by.y = "ID_BARN")
+
+sum(sex_gender$kjoenn != sex_gender$KJONN, na.rm = TRUE)
