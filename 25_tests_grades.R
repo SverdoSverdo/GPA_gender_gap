@@ -444,17 +444,30 @@ load("model_output/candidate_models_test_grades.Rdata")
 
         #### 4. CANDIDATE MODEL TABLES ####
 
+#### 4. CANDIDATE MODEL TABLES ####
+
+#z-multipliers: 95% CI is the default, 97.5% CI is used for any term involving
+#cog_g or noncog_g (bonferroni-style correction for testing both genetic scores)
+z_95  <- qnorm(0.975)   #~1.96
+z_975 <- qnorm(0.9875)  #~2.24
+
 all_tables <- lapply(outcomes, function(outcome) {
   
   #extract fixed effects
   full_model_info <- data.frame()
   
   for (i in names(candidate_models[[outcome]])) {
-    tidy_output <- broom.mixed::tidy(candidate_models[[outcome]][[i]], effects = "fixed", conf.int = TRUE)
-    new_data <- tidy_output[, c("term", "estimate", "std.error", "conf.low", "conf.high", "p.value")]
+    tidy_output <- broom.mixed::tidy(candidate_models[[outcome]][[i]], effects = "fixed")
+    new_data <- tidy_output[, c("term", "estimate", "std.error", "p.value")]
     new_data$model <- i
     full_model_info <- rbind(full_model_info, new_data)
   }
+  
+  #manual CIs: 97.5% for terms involving cog_g/noncog_g, 95% otherwise
+  #("noncog_g" contains "cog_g" as a substring, so one check covers both)
+  full_model_info$z_mult    <- ifelse(str_detect(full_model_info$term, "cog_g"), z_975, z_95)
+  full_model_info$conf.low  <- full_model_info$estimate - full_model_info$z_mult * full_model_info$std.error
+  full_model_info$conf.high <- full_model_info$estimate + full_model_info$z_mult * full_model_info$std.error
   
   #filtering and variance
   model_info <- full_model_info[!grepl("parental|school_middle|(Intercept)", full_model_info$term, ignore.case = TRUE), ]
@@ -531,15 +544,16 @@ all_tables <- lapply(outcomes, function(outcome) {
       })
     )
   
-  # gender-specific CIs
+  # gender-specific CIs — z_mult is per-row (carried over from full_model_info),
+  # so rows whose term involves cog_g/noncog_g automatically get the 97.5% multiplier
   model_info$estimate_boys  <- model_info$interaction_estimate + model_info$estimate
   model_info$estimate_girls <- model_info$interaction_estimate - model_info$estimate
   model_info$se_boys  <- sqrt(model_info$var + model_info$interaction_var + 2*model_info$cov)
   model_info$se_girls <- sqrt(model_info$var + model_info$interaction_var - 2*model_info$cov)
-  model_info$ci.upper_boys  <- model_info$estimate_boys  + model_info$se_boys  * 1.96
-  model_info$ci.lower_boys  <- model_info$estimate_boys  - model_info$se_boys  * 1.96
-  model_info$ci.upper_girls <- model_info$estimate_girls + model_info$se_girls * 1.96
-  model_info$ci.lower_girls <- model_info$estimate_girls - model_info$se_girls * 1.96
+  model_info$ci.upper_boys  <- model_info$estimate_boys  + model_info$se_boys  * model_info$z_mult
+  model_info$ci.lower_boys  <- model_info$estimate_boys  - model_info$se_boys  * model_info$z_mult
+  model_info$ci.upper_girls <- model_info$estimate_girls + model_info$se_girls * model_info$z_mult
+  model_info$ci.lower_girls <- model_info$estimate_girls - model_info$se_girls * model_info$z_mult
   
   # final table
   table_linear <- select(model_info, c(model, term, interaction, estimate,
@@ -626,6 +640,7 @@ all_tables <- lapply(outcomes, function(outcome) {
 })
 
 names(all_tables) <- outcomes
+
 
 save(all_tables, file = "model_output/all.tables.RData")
 
