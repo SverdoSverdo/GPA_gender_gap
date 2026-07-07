@@ -1,11 +1,11 @@
 source("00_settings.R")
 
-        #### 0. PREPARING DATA ####
+#### 0. PREPARING DATA ####
 
 data <- fread("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/individ_data_cleaned.csv", data.table = F)
 
 # these are the years we are interested in
-years <- c(2018:2024)
+years <- c(2017:2024)
 
 # these are the cohorts we are interested in
 data <- data[data$avgdato %in% years,]
@@ -13,17 +13,17 @@ data <- data[data$avgdato %in% years,]
 # school IDs that are part of our sample
 schools <- unique(data$lnr_org)
 # removing NA schools
-  schools <- schools[!schools == ""]
-  
+schools <- schools[!schools == ""]
+
 # load in retrospectively to count the number of datapoints used per model
 final_sample <- fread("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/final_data.csv",data.table = F)
 final_schools <- unique(final_sample$lnr_org)
 
-  
-        #### 1 SCHOOL TYPE ####    
-  
+
+#### 1 SCHOOL TYPE ####    
+
 # this section identifies whether a school is a combined elementary/lower secondary school
-  
+
 # setting up loop to read through all GSI datasets
 directory <- "N:/durable/data/registers/SSB/01_data/data_v6.0/EDUCATION_SCHOOLLEVEL/csv"
 file_pattern <- "EDUCATION_GSI_%d.csv"
@@ -32,7 +32,7 @@ file_pattern <- "EDUCATION_GSI_%d.csv"
 dataset_list <- list()
 
 # add datasets from the original loop 
-for (year in 2018:2024) {
+for (year in 2017:2024) {
   file_path <- sprintf(file_pattern, year)
   full_path <- file.path(directory, file_path)
   dataset_list[[as.character(year)]] <- full_path
@@ -87,7 +87,7 @@ all_years_complete <- all_years_complete %>%
 #write.csv(all_years_complete, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/91_pure_middle_schools.csv", row.names = F)
 
 
-        #### 2. PROPORTION OF FEMALE TEACHERS ####
+#### 2. PROPORTION OF FEMALE TEACHERS ####
 
 # initialize an empty list to store data frames
 list_of_dfs <- list()
@@ -134,7 +134,7 @@ teacher_gender <- bind_rows(list_of_dfs, .id = "year") %>%
 
 #write.csv(teacher_gender, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/92_teacher_gender.csv", row.names = F)
 
-        #### 3. TEACHER TURNOVER ####
+#### 3. TEACHER TURNOVER ####
 
 # codes for primary school teachers, obtained from SSB
 teachers <- c(85.201,85.202,85.203)
@@ -144,7 +144,7 @@ filtered_data_list <- list()
 
 
 ## the loop runs through all the datasets to connect teacher IDs to school IDs.
-for (year in 2018:2024) {
+for (year in 2017:2024) {
   # construct the file path
   file_path <- paste0("N:/durable/data/registers/SSB/01_data/data_v6.0/EMPLOYMENT/csv/EMPLOYMENT_REGSYS_", year, ".csv")
   
@@ -178,7 +178,7 @@ for (year in 2018:2024) {
 combined_data <- Reduce(function(x, y) full_join(x, y, by = "w19_0634_lnr"), filtered_data_list)
 
 # this dataset contains teacher IDs in the first column and the rest of the cells are filled with their school IDs for each year
-names(combined_data) <- c("w19_0634_lnr", "year_2018","year_2019","year_2020",
+names(combined_data) <- c("w19_0634_lnr","year_2017", "year_2018","year_2019","year_2020",
                           "year_2021","year_2022","year_2023","year_2024")
 
 # reshaping combined_data into long format
@@ -187,7 +187,7 @@ teacher_df <- combined_data %>%
 
 # changing year values to numeric
 teacher_df$year <- gsub("year_", "", teacher_df$year)
-  teacher_df$year <- as.numeric(teacher_df$year)
+teacher_df$year <- as.numeric(teacher_df$year)
 
 # identifying teachers who left their job at the end of each year
 teacher_df <- teacher_df %>%
@@ -210,9 +210,9 @@ teachers_leaving <- teacher_df %>%
   summarise(teachers_left = sum(left_job), .groups = 'drop')
 
 # create a complete set of combinations for school ID and year
-years <- 2018:2024
-  turnover_schools <- unique(teacher_df$lnr_org[!is.na(teacher_df$lnr_org)])
-  complete_combinations <- expand.grid(lnr_org = turnover_schools, year = years)
+years <- 2017:2024
+turnover_schools <- unique(teacher_df$lnr_org[!is.na(teacher_df$lnr_org)])
+complete_combinations <- expand.grid(lnr_org = turnover_schools, year = years)
 
 # merges the teachers_leaving dataframe with the complete set to include 0 values where no teachers left
 teachers_leaving <- complete_combinations %>%
@@ -252,8 +252,8 @@ turnover_rates <- turnover_rates %>%
 # N data points
 turnover_IDs <- teacher_df %>%
   semi_join(turnover_rates, by = c("lnr_org", "year"))
-    turnover_IDs <- semi_join(turnover_IDs, final_sample, by = c("lnr_org", "year"))
-    length(unique(turnover_IDs$w19_0634_lnr))
+turnover_IDs <- semi_join(turnover_IDs, final_sample, by = c("lnr_org", "year"))
+length(unique(turnover_IDs$w19_0634_lnr))
 
 # Calculate the mean turnover rate for each school
 mean_turnover_rates <- turnover_rates %>%
@@ -263,17 +263,17 @@ mean_turnover_rates <- turnover_rates %>%
 #write.csv(mean_turnover_rates, file = "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/93_teacher_turnover.csv", row.names = F)
 
 
-        #### 4. TEACHER EDUCATIONAL ATTAINMENT ####
+#### 4. TEACHER EDUCATIONAL ATTAINMENT ####
 
 # initialize an empty list to store the data
 all_teacher_school_links <- list()
 
-# loop through years 2018 to 2024 to link teachers with school IDs
-for (year in 2018:2024) {
+# loop through years 2017 to 2024 to link teachers with school IDs
+for (year in 2017:2024) {
   
   # read the dataset
   file_path <- paste0("N:/durable/data/registers/SSB/01_data/data_v6.0/EMPLOYMENT/csv/EMPLOYMENT_REGSYS_", year, ".csv")
-    data <- fread(file_path, data.table = F)
+  data <- fread(file_path, data.table = F)
   
   # filter for virksomhet (school ID)
   teacher_school_virk <- data %>%
@@ -310,19 +310,19 @@ for (year in 2018:2024) {
 # combine all years
 teacher_edu <- bind_rows(all_teacher_school_links)
 
-          ##### 4.1 linking with educational data #####
+##### 4.1 linking with educational data #####
 
 # IDs of teachers
 teachers_in_data <- unique(teacher_edu$w19_0634_lnr)
 
 # loading in dataset containing highest educational attainment
 edu <- fread("N:/durable/data/registers/SSB/01_data/data_v6.0/CORE/csv/EDUCATION_BU_UTD_IGANG_reduced.csv", data.table = F)
-  edu <- edu[,c(1,41:47)] # limit to the years 2018 - 2024
+edu <- edu[,c(1,40:47)] # limit to the years 2017 - 2024
 
 # limiting DF to teachers
 edu <- edu[edu$w19_0634_lnr %in% teachers_in_data,]
 
-names(edu) <- c("w19_0634_lnr","year_2018","year_2019","year_2020","year_2021","year_2022","year_2023","year_2024")
+names(edu) <- c("w19_0634_lnr","year_2017","year_2018","year_2019","year_2020","year_2021","year_2022","year_2023","year_2024")
 
 # teacher-year-education in long format
 edu_long <- edu %>%
@@ -349,18 +349,18 @@ unique_teachers <- merged_data %>%
   semi_join(final_sample, by = c("lnr_org", "year")) %>%
   pull(w19_0634_lnr) %>%
   unique()
-    length(unique_teachers)
+length(unique_teachers)
 
 #write.csv(school_teacher_edu, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/94_teacher_edu.csv", row.names = F)
 
 
-          #### 5. CLASSROOM ID ####
+#### 5. CLASSROOM ID ####
 
 # reading in dataset containing classroom IDs
 NT <- fread("N:/durable/data/registers/SSB/01_data/data_v6.0/EDUCATION_VGS_GRS/csv/EDUCATION_NASJONALE_PROVER.csv", data.table = F)
 
 # they take national tests 1.5 years before they graduate, so include students 2 year prior to our sample
-NT <- NT[NT$aargang > 201410,]
+NT <- NT[NT$aargang > 201310,]
 
 # doesnt matter which subject ID we use. Using reading scores from ninth grade
 NT <- NT[NT$provekode == "NPLES09",]
@@ -399,13 +399,13 @@ table(NT$year) #yes, they all take it in October
 # removing test month and adding 2 since they take the tests 1.5 years before they graduate.
 # each year now matches the year they graduated
 NT$year <- NT$year %/% 100
- NT$year <- NT$year + 2 
- 
+NT$year <- NT$year + 2 
+
 # making a variable that combines year and school ID
 NT$school_year <- paste0(NT$lnr_org,"_",NT$year)
 
 
-          ##### 5.1 Finding classrooms #####
+##### 5.1 Finding classrooms #####
 classrooms <- NT
 
 # removing rows with NA school IDs
@@ -444,7 +444,7 @@ classrooms_wide <- classrooms_wide %>%
   ungroup()
 
 
-          ##### 5.2 merging and removing classrooms not included in the analysis #####
+##### 5.2 merging and removing classrooms not included in the analysis #####
 
 median_class <- classrooms_wide[c("school_year","median_students","n_classes")] 
 
@@ -472,10 +472,10 @@ classrooms <- merge(classrooms, NT_IDs, by = "class")
 
 # loading in 10th grade dataset. Removing students who switched schools between 9th and 10th grade
 individ_data <- fread("N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/individ_data_cleaned.csv", data.table = F)
-  grad_date <- subset(individ_data, select = c(w19_0634_lnr,lnr_org,avgdato))
-  grad_date <- grad_date[grad_date$avgdato >2016,] #only those graduating from 2016 on wards
-  names(grad_date)[2] <- "grad_lnr_org" #school ID from the school they graduated from
-  
+grad_date <- subset(individ_data, select = c(w19_0634_lnr,lnr_org,avgdato))
+grad_date <- grad_date[grad_date$avgdato >2016,] #only those graduating from 2016 on wards
+names(grad_date)[2] <- "grad_lnr_org" #school ID from the school they graduated from
+
 NT_school <- subset(NT, select = c(w19_0634_lnr,lnr_org,year) )
 
 NT_grad_diff <- merge(grad_date,NT_school, by = "w19_0634_lnr")
@@ -487,20 +487,20 @@ table(NT_grad_diff$same_school) # 4% switched schools
 
 # removing those who switched schools
 school_switchers <- NT_grad_diff$w19_0634_lnr[NT_grad_diff$same_school == F]
-  classrooms <- classrooms[!classrooms$w19_0634_lnr %in% school_switchers,]
-  
+classrooms <- classrooms[!classrooms$w19_0634_lnr %in% school_switchers,]
+
 # adjusting the total class room sizes based on the fact that some switched schools, for calculating the classroom-level variables correctly.
 classrooms <- classrooms %>%
   group_by(class, school_year) %>%  
   mutate(student_count = n()) %>%
   ungroup()
 
-          ##### 5.3 classroom proportion of girls #####
+##### 5.3 classroom proportion of girls #####
 
 # loading in gender dataset
 gender <- fread("N:/durable/data/registers/SSB/01_data/data_v6.0/CORE/csv/POPULATION_FASTE_OPPLYSNINGER_reduced.csv", data.table = F)
-  gender <- gender[c("w19_0634_lnr","kjoenn")]
-  
+gender <- gender[c("w19_0634_lnr","kjoenn")]
+
 classrooms <- merge(classrooms, gender, by ="w19_0634_lnr", all.x = T)
 
 # recoding girls to 0
@@ -546,7 +546,7 @@ gender_proportion <- gender_and_total_counts[c("w19_0634_lnr","school_year","cla
 gender_proportion$classroom_gender <- 1-gender_proportion$classroom_gender
 
 
-          ##### 5.4 classroom grades #####
+##### 5.4 classroom grades #####
 
 # extracting the standardized grades
 grades <- individ_data[c("w19_0634_lnr","grades_std")]
@@ -563,18 +563,18 @@ unique_classrooms <- unique_classrooms %>%
 
 #f or classroom-level gender
 unique_classroom_gender <- unique_classrooms[!is.na(unique_classrooms$kjoenn),]
-  nrow(unique_classrooms)
+nrow(unique_classrooms)
 
 # for classroom-level GPA
 unique_classroom_grades <- unique_classrooms[!is.na(unique_classrooms$grades_std),]
-  nrow(unique_classroom_grades)
+nrow(unique_classroom_grades)
 
 # calculating the average grade in a classroom, deducting the grades of the focal person
 classrooms <- classrooms %>%
   group_by(class) %>%
   mutate(class_grades = ifelse(!is.na(grades_std),
-                                      (sum(grades_std, na.rm = TRUE) - grades_std) / (sum(!is.na(grades_std)) - 1),
-                                      NA)) %>%
+                               (sum(grades_std, na.rm = TRUE) - grades_std) / (sum(!is.na(grades_std)) - 1),
+                               NA)) %>%
   ungroup()
 
 
@@ -582,21 +582,21 @@ classroom_grades <- subset(classrooms, select = c(w19_0634_lnr,class_grades))
 
 # merging classroom gender and GPA datasets
 classroom_stats <- merge(gender_proportion,classroom_grades, by = "w19_0634_lnr") 
-  classroom_stats <- subset(classroom_stats, select = c(w19_0634_lnr,class,classroom_gender,class_grades))
+classroom_stats <- subset(classroom_stats, select = c(w19_0634_lnr,class,classroom_gender,class_grades))
 
 
 #write.csv(classroom_stats, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/95_classrooms_stats.csv", row.names = F)
 
-        #### 6. SCHOOL SES ####
+#### 6. SCHOOL SES ####
 
 # student data needed to create school SES variable
 SES_data <- individ_data[c("w19_0634_lnr","avgdato","lnr_org","lopenr_mor","lopenr_far")]
-  SES_data <- SES_data[!SES_data$avgdato < 2017,] # limiting to 2018 and beyond
+SES_data <- SES_data[!SES_data$avgdato < 2016,] # limiting to 2017 and beyond
 
 # loading in income data
 income <- fread("N:/durable/data/registers/SSB/01_data/data_v6.0/INCOME/csv/INCOME_INNTEKT_2011_2023.csv",
                 select = c("w19_0634_lnr","aargang","ies"), data.table = F)
-  names(income)[2] <- "year"
+names(income)[2] <- "year"
 
 # making a list of parental IDs of children in schools
 parental_IDs <- c(unique(SES_data$lopenr_mor), unique(SES_data$lopenr_far))
@@ -605,7 +605,7 @@ income <- income[income$w19_0634_lnr %in% parental_IDs,]
 
 
 # want to extract mother & father income three years prior to AVGDATO. including these years
-years <- c(2015:2023)
+years <- c(2014:2023)
 income <- income[income$year %in% years,]
 
 # 0 NA values
@@ -617,14 +617,14 @@ sum(income$ies == 0)
 cutoff <- quantile(income$ies, 0.02, na.rm = TRUE)
 income <- income[!(income$ies <= cutoff), ]
 
-          ##### 6.1 mom's income #####
+##### 6.1 mom's income #####
 
 # kid and mom IDs
 kid_mor_id <- SES_data[c("w19_0634_lnr","lopenr_mor")]
-  kid_mor_id <- kid_mor_id[!duplicated(kid_mor_id),]
+kid_mor_id <- kid_mor_id[!duplicated(kid_mor_id),]
 
 inc_mor <- income[income$w19_0634_lnr %in% SES_data$lopenr_mor,]
-  names(inc_mor)[1] <- "lopenr_mor"
+names(inc_mor)[1] <- "lopenr_mor"
 
 # changing to wide format
 inc_mor <- inc_mor %>%
@@ -640,23 +640,23 @@ inc_mor.temp <- SES_data[c("w19_0634_lnr","lopenr_mor","avgdato")]
 
 # merging this to get childs graduation date, mother ID and mother income each year in the same DF
 inc_mor <- merge(inc_mor.temp, inc_mor, by ="lopenr_mor", all.x = T)
-  inc_mor <- inc_mor[!inc_mor$lopenr_mor == "",] 
+inc_mor <- inc_mor[!inc_mor$lopenr_mor == "",] 
 
 # removing those students whose graduation date we dont know
 inc_mor <- inc_mor[!is.na(inc_mor$avgdato),]
 
 # changing order of columns
 year_cols <- as.character(2015:2023) # Creates a vector with years as character strings
-  other_cols <- setdiff(colnames(inc_mor), c("lopenr_mor", "w19_0634_lnr", "avgdato", year_cols))
-  ordered_cols <- c("lopenr_mor", "w19_0634_lnr", "avgdato", year_cols, other_cols)
-  inc_mor <- inc_mor[, ordered_cols]
+other_cols <- setdiff(colnames(inc_mor), c("lopenr_mor", "w19_0634_lnr", "avgdato", year_cols))
+ordered_cols <- c("lopenr_mor", "w19_0634_lnr", "avgdato", year_cols, other_cols)
+inc_mor <- inc_mor[, ordered_cols]
 
 
 # preparing parallell processing
 
 no_cores <- detectCores() - 3
-  cl <- makeCluster(no_cores)
-  clusterExport(cl, varlist = c("inc_mor", "year_cols"))
+cl <- makeCluster(no_cores)
+clusterExport(cl, varlist = c("inc_mor", "year_cols"))
 
 # define the function to calculate the 3-year average salary for a row
 calc_3yr_avg <- function(i) {
@@ -679,18 +679,18 @@ stopCluster(cl)
 
 # combine the results back into the original dataframe
 inc_mor$mor_3_yr_avg <- unlist(results)
-  inc_mor <- inc_mor[c("w19_0634_lnr","mor_3_yr_avg")]
+inc_mor <- inc_mor[c("w19_0634_lnr","mor_3_yr_avg")]
 
 rm(results)
 
-          ##### 6.2 dad's income #####
+##### 6.2 dad's income #####
 
 # kid and dad ID
 kid_far_id <- SES_data[c("w19_0634_lnr","lopenr_far")]
-  kid_far_id <- kid_far_id[!duplicated(kid_far_id),]
+kid_far_id <- kid_far_id[!duplicated(kid_far_id),]
 
 inc_far <- income[income$w19_0634_lnr %in% SES_data$lopenr_far,]
-  names(inc_far)[1] <- "lopenr_far"
+names(inc_far)[1] <- "lopenr_far"
 
 # changing to wide format
 inc_far <- inc_far %>%
@@ -701,7 +701,7 @@ inc_far <- inc_far %>%
 
 # changing NA introduced by reshaping to 0
 inc_far[is.na(inc_far)] <- 0
-  inc_far.temp <- SES_data[c("w19_0634_lnr","lopenr_far","avgdato")]
+inc_far.temp <- SES_data[c("w19_0634_lnr","lopenr_far","avgdato")]
 
 # merging this to get childs graduation date, father ID and father income each year in the same DF
 inc_far <- merge(inc_far.temp, inc_far, by ="lopenr_far", all.x = T)
@@ -712,14 +712,14 @@ inc_far <- inc_far[!is.na(inc_far$avgdato),]
 
 # changing order of columns
 year_cols <- as.character(2015:2023) # Creates a vector with years as character strings
-  other_cols <- setdiff(colnames(inc_far), c("lopenr_far", "w19_0634_lnr", "avgdato", year_cols))
-  ordered_cols <- c("lopenr_far", "w19_0634_lnr", "avgdato", year_cols, other_cols)
-  inc_far <- inc_far[, ordered_cols]
+other_cols <- setdiff(colnames(inc_far), c("lopenr_far", "w19_0634_lnr", "avgdato", year_cols))
+ordered_cols <- c("lopenr_far", "w19_0634_lnr", "avgdato", year_cols, other_cols)
+inc_far <- inc_far[, ordered_cols]
 
 # preparing parallell processing
 no_cores <- detectCores() - 3
-  cl <- makeCluster(no_cores)
-  clusterExport(cl, varlist = c("inc_far", "year_cols"))
+cl <- makeCluster(no_cores)
+clusterExport(cl, varlist = c("inc_far", "year_cols"))
 
 # define the function to calculate the 3-year average salary for a row
 calc_3yr_avg <- function(i) {
@@ -743,22 +743,22 @@ stopCluster(cl)
 
 # combine the results back into the original dataframe
 inc_far$far_3_yr_avg <- unlist(results)
-  inc_far <- inc_far[c("w19_0634_lnr","far_3_yr_avg")]
+inc_far <- inc_far[c("w19_0634_lnr","far_3_yr_avg")]
 
 rm(results)
 
-          ##### 6.3 parental and school-level income #####
+##### 6.3 parental and school-level income #####
 
 parental_income <- merge(inc_far, inc_mor, by = "w19_0634_lnr", all = T)
 
 # NA income = 0 income (ref SSB)
 parental_income$far_3_yr_avg[is.nan(parental_income$far_3_yr_avg)] <- 0
-  parental_income$mor_3_yr_avg[is.nan(parental_income$mor_3_yr_avg)] <- 0
+parental_income$mor_3_yr_avg[is.nan(parental_income$mor_3_yr_avg)] <- 0
 
 # merging mother and father income
 parental_income$combined_income <- rowSums(parental_income[c(2:3)], na.rm = T)
-  parental_income <- parental_income[c("w19_0634_lnr","combined_income")]
-  parental_income<- parental_income[!is.na(parental_income$combined_income),]
+parental_income <- parental_income[c("w19_0634_lnr","combined_income")]
+parental_income<- parental_income[!is.na(parental_income$combined_income),]
 
 # retrieving graduation year again
 avgdato <- individ_data[c("w19_0634_lnr","avgdato")]
@@ -776,10 +776,10 @@ SES_data <- merge(SES_data, parental_income, by = c("w19_0634_lnr","avgdato"), a
 
 
 #N data points
-unique_SES <- SES_data[SES_data$avgdato %in% c(2018,2019,2020,2021,2022,2023,2024),]
-  unique_moms <- unique_SES$lopenr_mor[unique_SES$lnr_org %in% final_sample$lnr_org]
-  unique_dads <- unique_SES$lopenr_far[unique_SES$lnr_org %in% final_sample$lnr_org]
-  length(c(unique_moms,unique_dads))
+unique_SES <- SES_data[SES_data$avgdato %in% c(2017,2018,2019,2020,2021,2022,2023,2024),]
+unique_moms <- unique_SES$lopenr_mor[unique_SES$lnr_org %in% final_sample$lnr_org]
+unique_dads <- unique_SES$lopenr_far[unique_SES$lnr_org %in% final_sample$lnr_org]
+length(c(unique_moms,unique_dads))
 
 #write.csv(SES_data, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/10_parental_income.csv", row.names = F)
 
@@ -790,7 +790,7 @@ school_ses <- SES_data %>%
 
 #write.csv(school_ses, "N:/durable/projects/37323479_Sverre_GPA_gender_gap/temp.data/96_school_SES.csv", row.names = F)
 
-        #### 7. SCHOOL-LEVEL PROPORTION OF GIRLS ####
+#### 7. SCHOOL-LEVEL PROPORTION OF GIRLS ####
 
 # limiting to our sample years
 school_gender <- individ_data[individ_data$avgdato %in% years,]
@@ -817,10 +817,10 @@ school_gender <- school_gender %>%
   select(lnr_org, avgdato, kjoenn, school_student_gender)
 
 # N data points
-unique_student_gender <- school_gender[school_gender$avgdato %in% c(2018,2019,2020,2021,2022,2023,2024),]
-  unique_student_gender$school_year <- paste0(unique_student_gender$lnr_org,"_",unique_student_gender$avgdato)
-  unique_student_gender <- school_gender[unique_student_gender$school_year %in% final_sample$school_year,]
-  nrow(unique_student_gender)
+unique_student_gender <- school_gender[school_gender$avgdato %in% c(2017,2018,2019,2020,2021,2022,2023,2024),]
+unique_student_gender$school_year <- paste0(unique_student_gender$lnr_org,"_",unique_student_gender$avgdato)
+unique_student_gender <- school_gender[unique_student_gender$school_year %in% final_sample$school_year,]
+nrow(unique_student_gender)
 
 # only need two values per school: one for boys and one for girls
 school_gender <- distinct(school_gender)
@@ -832,7 +832,7 @@ names(school_gender)[2] <- "year"
 
 
 
-        #### 8. EXTERNALIZING BEHAVIOR & POSITIVE SCHOOL CLIMATE ####
+#### 8. EXTERNALIZING BEHAVIOR & POSITIVE SCHOOL CLIMATE ####
 
 # responses to ext. behavior and positive school climate are already aggregated to grade-levels within schools
 u_data <- fread("N:/durable/data/questionnaires/Ungdata_NOVA/01_data/Ungdata_NOVA_2015-2024.csv")
@@ -842,14 +842,14 @@ variabel_list <- read_excel("N:/durable/projects/37323479_Sverre_GPA_gender_gap/
 
 # variables on ext. behavior and positive school climate
 my_variables <- c("atfpro1", "atfpro12", "mobb1", "skolprob4", "mobb2", "atfpro15","atfpro18","atfpro16","atfpro25",
-                       "atfpro30","atfpro31", "skole1","skole6","skole4","skole2","skole3", "atfpro11","atfpro7","atfpro5","skolprob1",
-                       "skolprob5","mobb3","skolprob2","skulkgr2","skole8","skolprob3","trygg3","vold2","vold3","vold4")
+                  "atfpro30","atfpro31", "skole1","skole6","skole4","skole2","skole3", "atfpro11","atfpro7","atfpro5","skolprob1",
+                  "skolprob5","mobb3","skolprob2","skulkgr2","skole8","skolprob3","trygg3","vold2","vold3","vold4")
 
 # limiting the variable list to the variables in my_variables
 variabel_list <- variabel_list[variabel_list$Variabelnavn %in% my_variables,]
 
 
-          ##### 8.1 Making school-level means #####
+##### 8.1 Making school-level means #####
 
 # to make school-level averages, we need to compute the grand mean across all grades in that school.
 # we therefore need to extract N and mean score for each grade within any given school/year combo and create weighted school-level means
@@ -868,7 +868,7 @@ columns_to_keep <- c("lnr_org", "aar","grade",variables_to_keep)
 u_data <- u_data %>% select(all_of(columns_to_keep))
 
 # removing earlier years, and only including relevant classes
-u_data <- u_data[u_data$aar > 2017,]
+u_data <- u_data[u_data$aar > 2016,]
 u_data <- u_data[u_data$grade <= 9,] # 9 and below are lower secondary school grades
 
 
@@ -882,11 +882,11 @@ for (item in my_variables) {
   item_mean_col <- paste0(item, "_mean")
   item_nu_col <- paste0(item, "_nu")
   
-    school_means <- u_data %>%
-      group_by(lnr_org, aar) %>%
-      summarise(!!paste0(item, "_overall_mean") := weighted.mean(.data[[item_mean_col]], .data[[item_nu_col]], na.rm = TRUE), .groups = 'drop') %>%
-      right_join(school_means, by = c("lnr_org", "aar"))
-  }
+  school_means <- u_data %>%
+    group_by(lnr_org, aar) %>%
+    summarise(!!paste0(item, "_overall_mean") := weighted.mean(.data[[item_mean_col]], .data[[item_nu_col]], na.rm = TRUE), .groups = 'drop') %>%
+    right_join(school_means, by = c("lnr_org", "aar"))
+}
 
 
 # renaming columns
@@ -927,13 +927,13 @@ missing_df <- data.frame(
 cut_off <- nrow(ext_behavior_items)/2
 
 cols_to_keep <- missing_df$column_name[missing_df$missing_values < cut_off]
-  ext_behavior_items <- ext_behavior_items[, cols_to_keep]
+ext_behavior_items <- ext_behavior_items[, cols_to_keep]
 
 # removing school-level details
 ext_behavior_items <- ext_behavior_items[3:ncol(ext_behavior_items)]
 
 
-          ##### 8.2 externalizing behavior #####
+##### 8.2 externalizing behavior #####
 
 # plotting screeplot
 tiff("plots/ext.behavior_scree.tiff", 
@@ -956,38 +956,38 @@ par(cex = 1, mar = c(5, 4, 4, 2) + 0.1)
 efa_result <- psych::fa(ext_behavior_items, nfactors = 4, fm = "ml", rotate = "promax", missing = TRUE)
 
 loadings_df <- as.data.frame(unclass(efa_result$loadings))
-  loadings_df <- cbind(item = rownames(loadings_df), loadings_df)
+loadings_df <- cbind(item = rownames(loadings_df), loadings_df)
 
 #save(loadings_df, file = "tables/ext.behavior_EFA.RData")
 
 # these items had support on the first factor
 ext_final_items <- c("atfpro25","atfpro18","atfpro12","atfpro15","atfpro30","atfpro31")
-  ext_final_item_desc <- variabel_list[variabel_list$Variabelnavn %in% ext_final_items,]
+ext_final_item_desc <- variabel_list[variabel_list$Variabelnavn %in% ext_final_items,]
 
 # final externalizing behavior df
 ext_df <- school_means[c("lnr_org","aar",ext_final_items)]
 
 # preparing data without school ID and year
 ext_df_analysis <- subset(ext_df, select =
-                                     -c(lnr_org,aar))
+                            -c(lnr_org,aar))
 
 # model specification
 ext_model <- 'ext_behavior =~ atfpro25+atfpro18+atfpro12+atfpro15+atfpro30+atfpro31'
 
 # fit the model using FIML
 ext_fit <- cfa(ext_model, data = ext_df_analysis, missing = "fiml", std.lv = T)
-  fitMeasures(ext_fit)[c("rmsea","tli","srmr")]
-  modificationIndices(ext_fit, sort = TRUE)
-  parameterestimates(ext_fit)
+fitMeasures(ext_fit)[c("rmsea","tli","srmr")]
+modificationIndices(ext_fit, sort = TRUE)
+parameterestimates(ext_fit)
 
 # creating factor scores
 ext_factor_scores <- lavPredict(ext_fit)
 
 # indexing school/year
 ext_item_schools <- subset(ext_df, select = c(lnr_org,aar))
-  ext_item_schools<- cbind(ext_item_schools, ext_factor_scores)
+ext_item_schools<- cbind(ext_item_schools, ext_factor_scores)
 
-          ##### 8.3 positive school climate #####
+##### 8.3 positive school climate #####
 
 pos_df <- school_means[c("lnr_org","aar",pos_climate_item_names)]
 
@@ -1006,8 +1006,8 @@ pos_df_analysis <- pos_df[3:ncol(pos_df)]
 pos_model <- 'pos_climate =~ skole1+skole2+skole3+skole4+skole6'
 
 pos_fit <- cfa(pos_model, data = pos_df_analysis, missing = "fiml")
-  fitmeasures(pos_fit)[c("rmsea","tli","srmr")]
-  modificationIndices(pos_fit, sort = TRUE)
+fitmeasures(pos_fit)[c("rmsea","tli","srmr")]
+modificationIndices(pos_fit, sort = TRUE)
 
 # specifying residual correlation structure
 pos_model_resid <- 'pos_climate =~ skole1+skole2+skole3+skole4+skole6
@@ -1017,8 +1017,8 @@ pos_model_resid <- 'pos_climate =~ skole1+skole2+skole3+skole4+skole6
 '
 
 pos_fit_final <- cfa(pos_model_resid, data = pos_df_analysis, missing = "fiml", std.lv = T)
-  fitMeasures(pos_fit_final)[c("rmsea","tli","srmr")]
-  parameterestimates(pos_fit_final, standardized = T)
+fitMeasures(pos_fit_final)[c("rmsea","tli","srmr")]
+parameterestimates(pos_fit_final, standardized = T)
 
 # creating factor scores
 pos_factor_scores <- lavPredict(pos_fit_final)
@@ -1026,10 +1026,10 @@ pos_factor_scores <- lavPredict(pos_fit_final)
 # indexing school/year
 pos_item_schools <- subset(pos_df, select = c(lnr_org,aar))
 pos_item_schools<- cbind(pos_item_schools, pos_factor_scores)  
-  
+
 # combining factor score DFs for positive school climate and ext. behavior
 factor_scores <- merge(pos_item_schools,ext_item_schools, by = c("lnr_org","aar"))
-  names(factor_scores)[1:2] <- c("lnr_org","year")
+names(factor_scores)[1:2] <- c("lnr_org","year")
 
 # reverse coding positive climate
 factor_scores$pos_climate <- factor_scores$pos_climate*(-1)
@@ -1041,7 +1041,7 @@ factor_scores$pos_climate <- factor_scores$pos_climate*(-1)
 count_data <- fread("N:/durable/data/questionnaires/Ungdata_NOVA/01_data/Ungdata_NOVA_2015-2024.csv", data.table = F)
 
 # removing earlier years, and only including relevant classes
-count_data <- count_data[count_data$aar > 2017,]
+count_data <- count_data[count_data$aar > 2016,]
 count_data <- count_data[count_data$grade <= 9,] # 9 and below are lower secondary school grades
 
 # number of students answering each pos climate item
@@ -1049,12 +1049,12 @@ pos_climate_nu <- paste0(pos_climate_item_names, "_nu")
 
 # making a DF with a school/year ID for the year a survey was carried out plus two years back
 pos_climate_count <- count_data[c("lnr_org","aar",pos_climate_nu)]
-  pos_climate_count$aar2 <- pos_climate_count$aar -1
-  pos_climate_count$aar3 <- pos_climate_count$aar -2
+pos_climate_count$aar2 <- pos_climate_count$aar -1
+pos_climate_count$aar3 <- pos_climate_count$aar -2
 
 pos_climate_count$school_year1 <- paste0(pos_climate_count$lnr_org,"_",pos_climate_count$aar)
-  pos_climate_count$school_year2 <- paste0(pos_climate_count$lnr_org,"_",pos_climate_count$aar2)
-  pos_climate_count$school_year3 <- paste0(pos_climate_count$lnr_org,"_",pos_climate_count$aar3)
+pos_climate_count$school_year2 <- paste0(pos_climate_count$lnr_org,"_",pos_climate_count$aar2)
+pos_climate_count$school_year3 <- paste0(pos_climate_count$lnr_org,"_",pos_climate_count$aar3)
 
 # linking students in the analysis to these school/year combos
 pos_climate_count <- pos_climate_count[pos_climate_count$school_year1 %in% final_sample$school_year
@@ -1073,19 +1073,18 @@ ext_nu <- paste0(ext_final_items, "_nu")
 
 # making a DF with a school/year ID for the year a survey was carried out plus two years back
 ext_count <- count_data[c("lnr_org","aar",ext_nu)]
-  ext_count$aar2 <- ext_count$aar -1
-  ext_count$aar3 <- ext_count$aar -2
+ext_count$aar2 <- ext_count$aar -1
+ext_count$aar3 <- ext_count$aar -2
 
 ext_count$school_year1 <- paste0(ext_count$lnr_org,"_",ext_count$aar)
-  ext_count$school_year2 <- paste0(ext_count$lnr_org,"_",ext_count$aar2)
-  ext_count$school_year3 <- paste0(ext_count$lnr_org,"_",ext_count$aar3)
+ext_count$school_year2 <- paste0(ext_count$lnr_org,"_",ext_count$aar2)
+ext_count$school_year3 <- paste0(ext_count$lnr_org,"_",ext_count$aar3)
 
-  # linking students in the analysis to these school/year combos
+# linking students in the analysis to these school/year combos
 ext_count <- ext_count[ext_count$school_year1 %in% final_sample$school_year
-                                       | ext_count$school_year2 %in% final_sample$school_year
-                                       | ext_count$school_year3 %in% final_sample$school_year,]
+                       | ext_count$school_year2 %in% final_sample$school_year
+                       | ext_count$school_year3 %in% final_sample$school_year,]
 
 # out of the six items, which one had the highest response rate?
 ext_count$max_response <- apply(ext_count[, 3:8], 1, max)
 sum(ext_count$max_response)
-
