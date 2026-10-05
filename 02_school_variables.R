@@ -935,22 +935,38 @@ ext_behavior_items <- ext_behavior_items[3:ncol(ext_behavior_items)]
 
 ##### 8.2 externalizing behavior #####
 
-# plotting screeplot
-tiff("plots/ext.behavior_scree.tiff", 
-     width = 90, 
-     height = 90,  # adjust as needed
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
+# run parallel analysis without the built-in plot
+pa <- psych::fa.parallel(ext_behavior_items, fa = "fa", plot = FALSE)
 
-par(cex = 0.8, mar = c(5, 4, 1, 2) + 0.1)
+# long format: actual, simulated and resampled eigenvalues
+n_fac <- length(pa$fa.values)
+pa_df <- data.frame(
+  factor = rep(seq_len(n_fac), 3),
+  eigen  = c(pa$fa.values, pa$fa.sim, pa$fa.simr),
+  type   = rep(c("Actual data", "Simulated data", "Resampled data"), each = n_fac)
+)
+pa_df$type <- factor(pa_df$type, levels = c("Actual data", "Simulated data", "Resampled data"))
 
-psych::fa.parallel(ext_behavior_items, fa="fa", main = "") 
+p_scree <- ggplot(pa_df, aes(factor, eigen, colour = type, linetype = type)) +
+  geom_hline(yintercept = 0, colour = "grey70", linewidth = 0.3) +
+  geom_line(linewidth = 0.5) +
+  geom_point(data = subset(pa_df, type == "Actual data"), size = 1.2, show.legend = FALSE) +
+  # blue for actual data, red for the simulated/resampled reference lines
+  scale_colour_manual(values = c("#3F8FCB", "#C62B2B", "#C62B2B")) +
+  scale_linetype_manual(values = c("solid", "dotted", "dashed")) +
+  labs(x = "Factor number", y = "Eigenvalue", colour = NULL, linetype = NULL) +
+  theme_minimal(base_size = 8, base_family = "sans") +
+  theme(
+    legend.position = c(0.75, 0.85),
+    legend.background = element_blank(),
+    legend.key.width = unit(8, "mm"),   # longer keys so dotted vs dashed is visible
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black")
+  )
 
-dev.off()
-
-# reset plotting parameters to default
-par(cex = 1, mar = c(5, 4, 4, 2) + 0.1)
+ggsave("plots/supp_figure5.pdf", p_scree,
+       device = cairo_pdf, width = 89, height = 89, units = "mm")
 
 # EFA
 efa_result <- psych::fa(ext_behavior_items, nfactors = 4, fm = "ml", rotate = "promax", missing = TRUE)
