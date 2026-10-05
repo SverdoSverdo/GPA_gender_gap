@@ -87,37 +87,42 @@ for(i in 1:9) {
   # extracting the environmental model
   variable <- env_variables[i]
   
-  #NonCog-school cor with parental controls
+  # noncog-school cor with parental controls
   cor_test <- cor.test(res_data$noncog_res, res_data[[variable]])
-  rGE$noncog_p[i] <- cor_test$estimate
+  rGE$noncog_p[i]          <- cor_test$estimate
   rGE$noncog_p_ci_lower[i] <- cor_test$conf.int[1]
   rGE$noncog_p_ci_upper[i] <- cor_test$conf.int[2]
-   
-   #Cog-school cor with parental controls
-   cor_test <- cor.test(res_data$cog_res, res_data[[variable]])
-   rGE$cog_p[i] <- cor_test$estimate
-   rGE$cog_p_ci_lower[i] <- cor_test$conf.int[1]
-   rGE$cog_p_ci_upper[i] <- cor_test$conf.int[2]
-   
-   #NonCog-school cor without parental controls
-   cor_test <- cor.test(res_data$noncog, res_data[[variable]])
-   rGE$noncog[i] <- cor_test$estimate
-   rGE$noncog_ci_lower[i] <- cor_test$conf.int[1]
-   rGE$noncog_ci_upper[i] <- cor_test$conf.int[2]
+  rGE$noncog_p_pval[i]     <- cor_test$p.value
 
-     #NonCog-school cor without parental controls
-   cor_test <- cor.test(res_data$cog, res_data[[variable]])
-   rGE$cog[i] <- cor_test$estimate
-   rGE$cog_ci_lower[i] <- cor_test$conf.int[1]
-   rGE$cog_ci_upper[i] <- cor_test$conf.int[2]
+  # cog-school cor with parental controls
+  cor_test <- cor.test(res_data$cog_res, res_data[[variable]])
+  rGE$cog_p[i]          <- cor_test$estimate
+  rGE$cog_p_ci_lower[i] <- cor_test$conf.int[1]
+  rGE$cog_p_ci_upper[i] <- cor_test$conf.int[2]
+  rGE$cog_p_pval[i]     <- cor_test$p.value
 
+  # noncog-school cor without parental controls
+  cor_test <- cor.test(res_data$noncog, res_data[[variable]])
+  rGE$noncog[i]          <- cor_test$estimate
+  rGE$noncog_ci_lower[i] <- cor_test$conf.int[1]
+  rGE$noncog_ci_upper[i] <- cor_test$conf.int[2]
+  rGE$noncog_pval[i]     <- cor_test$p.value
+
+  # cog-school cor without parental controls
+  cor_test <- cor.test(res_data$cog, res_data[[variable]])
+  rGE$cog[i]          <- cor_test$estimate
+  rGE$cog_ci_lower[i] <- cor_test$conf.int[1]
+  rGE$cog_ci_upper[i] <- cor_test$conf.int[2]
+  rGE$cog_pval[i]     <- cor_test$p.value
 }
+
+rGE[, c("variable", "cog", "cog_pval", "noncog", "noncog_pval")]
 
           ##### 2.3 plot #####
 
 # for nice plotting names:)
 rGE$variable <- c("School-level SES","Classroom-level proportion of Girls","Classroom-level GPA","Teacher educational attainment",   
-                     "Proportion of female teachers", "Teacher turnover", "School-level proportion of girls", "Positive school climate",          
+                     "Proportion of women teachers", "Teacher turnover", "School-level proportion of girls", "Positive school climate",          
                      "Externalizing behavior" )
 
 # add a tiny bit to teacher turnover (basically zero) so that it shows up on the plot
@@ -159,15 +164,15 @@ rGE_long <- rGE_plot %>%
   )
 
 
-rGE_plot <- ggplot(rGE_long, aes(x = position, y = estimate, fill = estimate_type)) +
+supp_fig1 <- ggplot(rGE_long, aes(x = position, y = estimate, fill = estimate_type)) +
   geom_bar(stat = "identity", position = "identity", width = 1) +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper),
                 width = 0.18) +
   facet_wrap(~ variable) +
   scale_y_continuous(limits = c(-0.03, 0.10),
                      breaks = seq(-0.02, 0.08, by = 0.02)) +
-  scale_fill_manual(values = c("NonCog-PGI" = "#2E7D32",
-                               "NonCog-PGI with parental PGIs" = "#81C784",
+  scale_fill_manual(values = c("NonCog-PGI" = "#E6B422",
+                               "NonCog-PGI with parental PGIs" = "#F2D27A",
                                "Cog-PGI" = "#6A1B9A",
                                "Cog-PGI with parental PGIs" = "#BA68C8")) +
   labs(x = "", y = "Estimate", fill = "") +
@@ -181,16 +186,7 @@ rGE_plot <- ggplot(rGE_long, aes(x = position, y = estimate, fill = estimate_typ
     legend.text = element_text(size = 7),
     legend.position = "bottom")
 
-tiff("plots/supp_figure1.tiff", 
-     width = 140, 
-     height = 140,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-rGE_plot
-
-dev.off()
+ggsave("plots/supp_fig1.pdf", plot = supp_fig1, width = 140, height = 140, # adjust as needed, units = "mm", device = cairo_pdf)
 
           ##### 2.4  rGE table #####
 
@@ -307,7 +303,7 @@ plot_data <- results_combined %>%
   )
 
 # Create the plot - faceted by gender, one on top of the other
-articifial_censor_plot <- ggplot(plot_data, aes(x = x_position, y = estimate, color = gender)) +
+supp_fig6 <- ggplot(plot_data, aes(x = x_position, y = estimate, color = gender)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +
   geom_pointrange(
     aes(ymin = lower, ymax = upper),
@@ -346,16 +342,7 @@ articifial_censor_plot <- ggplot(plot_data, aes(x = x_position, y = estimate, co
     legend.position = "none"
   )
 
-tiff("plots/supp_figure6.tiff", 
-     width = 120, 
-     height = 90,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-articifial_censor_plot
-
-dev.off()
+ggsave("plots/supp_fig6.pdf", plot = supp_fig6, width = 120, height = 90, units = "mm", device = cairo_pdf)
 
 
         #### 6. MISSINGNESS PATTERNS ####
