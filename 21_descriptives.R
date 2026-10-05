@@ -165,7 +165,7 @@ candidate_env_cor <- data[,names(data) %in% school_vars]
 
 # in order to have nice plotting names :)
 plot_names <- data.frame(var_name = c(school_vars),
-                         plot_name =  c("Proportion of female teachers",
+                         plot_name =  c("Proportion of women teachers",
                                         "Teacher turnover",
                                         "Teacher educational attainment",
                                         "Classroom-level proportion of girls",
@@ -187,13 +187,12 @@ candidate_env_cor <- cor(candidate_env_cor, use = "pairwise")
 colnames(candidate_env_cor) <- 1:ncol(candidate_env_cor)
 
 
-tiff("plots/supp_figure3.tiff",
-     width = 89,
-     height = 68,
-     units = "mm",
-     res = 600,
-     compression = "lzw")
+cairo_pdf("plots/supp_fig3.pdf",
+          width = 89 / 25.4,
+          height = 68 / 25.4,
+          family = "sans")
 
+par(xpd = T)
 
 corrplot(candidate_env_cor,
          method = "color",
@@ -205,7 +204,8 @@ corrplot(candidate_env_cor,
          tl.offset = .52,
          cl.pos = "n",
          tl.cex = .45,
-         family = "serif")
+         mar = c(0,0.5,0,0),
+         family = "sans")
 
 dev.off()
 
