@@ -170,7 +170,7 @@ main_effects$term <- c(
   "School-level SES",
   "School-level proportion of girls",
   "Teacher educational attainment",
-  "Proportion of female teachers",
+  "Proportion of women teachers",
   "Teacher turnover")
 
 # arrange the dataframe by descending order for girls
@@ -260,7 +260,7 @@ gender_plot <- ggplot(main_effects_long, aes(x = estimate, y = term_numeric, col
       label = pval_label,
       y = term_numeric + ifelse(gender == "Boys", 0.12, -0.12),
       hjust = label_hjust,
-      family = "serif",
+      family = "sans",
     ),
     size = 2, show.legend = FALSE
   ) +
@@ -283,7 +283,7 @@ gender_plot <- ggplot(main_effects_long, aes(x = estimate, y = term_numeric, col
     panel.grid.major = element_line(color = "grey95", linewidth = 0.3),
     legend.position = "bottom",
     legend.title = element_text(size = 7, face = "bold"),  # Specify which element
-    axis.text.y = element_text(family = "serif"),
+    axis.text.y = element_text(family = "sans"),
     axis.title.x = element_text(hjust = .37),
     legend.margin = margin(t = -5) 
   )+
@@ -355,7 +355,7 @@ noncog_final$term <- c("School-level SES",
                     "Classroom-level proportion of girls",
                     "Classroom-level GPA",
                     "Teacher educational attainment",
-                    "Proportion of female teachers",
+                    "Proportion of women teachers",
                     "Teacher turnover",
                     "School-level proportion of girls",
                     "Positive school climate",
@@ -425,13 +425,13 @@ PGI_plot <- ggplot(cognoncog, aes(x = estimate, y = term, color = group)) +
   geom_text(data = data.frame(
     term = "Teacher educational attainment",
     estimate = -0.0276,  
-    label = "p <.001"  
+    label = " <.001"  
   ),
   aes(label = label, x = estimate, y = term),
-  color = "#518D3F",  
+  color = "#DAA520",  
   position = position_nudge(x = -0.027, y = 0.13),  
   size = 2,
-  family = "serif",
+  family = "sans",
   inherit.aes = FALSE) +
   geom_text(data = data.frame(
     term = "School-level SES",
@@ -439,28 +439,30 @@ PGI_plot <- ggplot(cognoncog, aes(x = estimate, y = term, color = group)) +
     label = "p =.010"  
   ),
   aes(label = label, x = estimate, y = term),
-  color = "#518D3F", 
+  color = "#DAA520", 
   position = position_nudge(x = -0.022, y = 0.13),  
   size = 2,
-  family = "serif",
+  family = "sans",
   inherit.aes = FALSE)
 
 
           ##### 4.2 combinging plots #####
 
-tiff("plots/candidate_environments.tiff", 
-     width = 180, 
-     height = 100,  # adjust as needed
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
+fig4 <-  plot_grid(gender_plot, PGI_plot,
+            ncol = 2,
+            rel_widths = c(1.6, 1),
+            labels = c("a", "b"),
+            label_fontfamily = "sans",
+            label_fontface = "bold",
+            label_size = 9)
 
-grid.arrange(
-  gender_plot, PGI_plot,
-  ncol = 2,
-  widths = c(1.6, 1))
-  
-dev.off()  
+
+ggsave("plots/fig4.pdf",
+     plot = fig4,
+     width = 178,
+     height = 100,  # adjust as needed
+     units = "mm",
+     device = cairo_pdf)
 
 
          #### 5. TEACHER EDU * NONCOG ####
@@ -625,7 +627,7 @@ teacher_edu_plot <- ggplot(final_df, aes(x = noncog_vals, y = Expected_GPA,
   inherit.aes = FALSE,
   hjust = 0.5,
   size = 2,  
-  family = "serif",
+  family = "sans",
   fontface = "bold",
   color = "black") +
   geom_rect(data = data.frame(
@@ -637,7 +639,7 @@ teacher_edu_plot <- ggplot(final_df, aes(x = noncog_vals, y = Expected_GPA,
   ),
   aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
   fill = c(plot_colors["Girls.High (+2 SD)"], plot_colors["Girls.Average"], plot_colors["Girls.Low (-2 SD)"],
-           plot_colors["Boys.Low (-2 SD)"], plot_colors["Boys.Average"], plot_colors["Boys.High (+2 SD)"]),
+           plot_colors["Boys.High (+2 SD)"], plot_colors["Boys.Average"], plot_colors["Boys.Low (-2 SD)"]),
   color = NA,
   inherit.aes = FALSE) +
   geom_text(data = data.frame(
@@ -648,7 +650,7 @@ teacher_edu_plot <- ggplot(final_df, aes(x = noncog_vals, y = Expected_GPA,
   ),
   aes(x = x, y = y, label = label),
   inherit.aes = FALSE,
-  family = "serif",
+  family = "sans",
   hjust = 0,
   size = 2) +  
   labs(x = "",
@@ -661,38 +663,36 @@ grob_per_facet <- gTree(children = gList(
   # facet labels 
   textGrob("Boys",
            x = unit(.34, "npc"), y = unit(0.74, "npc"),
-           gp = gpar(fontfamily = "serif", fontface = "bold", fontsize = 8),
+           gp = gpar(fontfamily = "sans", fontface = "bold", fontsize = 8),
            just = "center"),
   textGrob("Girls",
            x = unit(0.77, "npc"), y = unit(0.75, "npc"),
-           gp = gpar(fontfamily = "serif", fontface = "bold", fontsize = 8),
+           gp = gpar(fontfamily = "sans", fontface = "bold", fontsize = 8),
            just = "center"),
   # x-axis titles 
   textGrob(x_label_text,
            x = unit(0.34, "npc"), y = unit(2, "npc"),
-           gp = gpar(fontfamily = "serif",  fontsize = 6.2),
+           gp = gpar(fontfamily = "sans",  fontsize = 6.2),
            just = "center"),
   textGrob(x_label_text,
            x = unit(0.77, "npc"), y = unit(2, "npc"),
-           gp = gpar(fontfamily = "serif",  fontsize = 6.2),
+           gp = gpar(fontfamily = "sans",  fontsize = 6.2),
            just = "center")
 ))
 
 
-tiff("plots/teacher_edu_noncog.tiff", 
-     width = 90, 
-     height = 90,
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-grid.arrange(
+fig5 <- grid.arrange(
   teacher_edu_plot, grob_per_facet,
   ncol = 1,
-  heights = c(10, .5)   
+  heights = c(10, .5)
 )
 
-dev.off()
+ggsave("plots/fig5.pdf",
+       plot = fig5,
+       width = 90,
+       height = 90,  # adjust as needed
+       units = "mm",
+       device = cairo_pdf)
 
 
           ##### 5.3 differences in expected GPA #####
