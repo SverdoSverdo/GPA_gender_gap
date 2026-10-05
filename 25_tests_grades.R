@@ -952,7 +952,7 @@ plot_top <- ggplot(blup_df, aes(x = Gender, y = nonCog_blup, fill = Gender)) +
 
           ##### 5.5 figure 3 #####
 
-figure3 <- plot_grid(
+fig6 <- plot_grid(
   plot_top, plot_bottom,
   ncol = 1,
   rel_heights = c(5, 4),
@@ -962,16 +962,7 @@ figure3 <- plot_grid(
   label_size = 10
 )
 
-tiff("plots/figure3.tiff",
-     width = 179,
-     height = 100,
-     units = "mm",
-     res = 600,
-     compression = "lzw")
-
-figure3
-
-dev.off()
+ggsave("plots/fig6.pdf, plot = fig6, wifth = 180, height = 90, units ="mm", device = cairo_pdf)
 
 
 #sd in gender gaps
@@ -1374,20 +1365,13 @@ bottom <- plot_grid(test_scores_gender_plot, test_scores_int_PGI_plot, nrow = 1,
                     label_fontface = "bold",
                     label_size = 12)
 
-tiff("plots/supp_figure2.tiff",
-     width = 179,
-     height = 160,
-     units = "mm",
-     res = 600,
-     compression = "lzw")
-
-plot_grid(top, NULL, bottom, nrow = 3, rel_heights = c(5, 0.2, 4),
+supp_fig2 <- plot_grid(top, NULL, bottom, nrow = 3, rel_heights = c(5, 0.2, 4),
           labels = c("a", "", ""),          # "a" on top, skip spacer and bottom
           label_fontfamily = "serif",
           label_fontface = "bold",
           label_size = 12)
 
-dev.off()
+ggsave("plots/supp_fig2.pdf, plot = supp_fig2, width = 179, height = 160, units = "mm", device = cairo_pdf)
 
 
 
