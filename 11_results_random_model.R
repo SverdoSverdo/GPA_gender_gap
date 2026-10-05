@@ -133,6 +133,9 @@ cov_noncoggender_int <- random_var["kjoenn_g:noncog_g", "(Intercept)"] #gender*N
 cov_noncoggender_gender <- random_var["kjoenn_g:noncog_g", "kjoenn_g"] #gender*NonCog-gender covariance
 cov_noncoggender_noncog <- random_var["kjoenn_g:noncog_g","noncog_g"] #gender*NonCog-noncog covariance
 
+mult_noncog_girls <- (cov_noncog_int - (cov_noncoggender_int)) / sd_intercept
+mult_noncog_boys <- (cov_noncog_int + (cov_noncoggender_int)) / sd_intercept
+
 #the mean gender gap
 mean_observed_gap <- beta_gender * 2  
 
@@ -181,7 +184,7 @@ gender_SD <- ggplot(df_density, aes(x = gender_gap, y = density, fill = "Gender 
   scale_fill_manual(values = c("Gender Gap" = "purple"), name = NULL) +
   annotate("text", x = -.65, y = max(df_density$density) * 0.54,
            label = sprintf("N2 = %.2f (SD = %.2f)", mean_observed_gap, sd_gender*2),
-           hjust = 1, size = figure_annotation_size, color = "black", family = "serif") +
+           hjust = 1, size = figure_annotation_size, color = "black", family = "sans") +
   theme_sverdo() +
   theme(
     legend.position = "none",
@@ -231,10 +234,10 @@ scale_x_continuous(
   scale_fill_manual(values = c("Boys" = color_boys, "Girls" = color_girls),name = NULL) +
   annotate("text", x = 0.075, y = max(plot_data$density) * 0.50,
            label = paste0("Girls: N2 = ", round(beta_noncog_girls, 2), " (SD = ", round(sd_girls, 2),")"),
-           hjust = 1, size = figure_annotation_size, color = color_girls, family = "serif") +
+           hjust = 1, size = figure_annotation_size, color = color_girls, family = "sans") +
   annotate("text", x = 0.075, y = max(plot_data$density) * 0.58,
            label = paste0("Boys: N2 = ", round(beta_noncog_boys, 2), " (SD = ", round(sd_boys, 2),")"),
-           hjust = 1, size = figure_annotation_size, color = color_boys, family = "serif") +
+           hjust = 1, size = figure_annotation_size, color = color_boys, family = "sans") +
   theme_sverdo()+
   theme(
     legend.position = c(0.85, 0.55),
@@ -242,20 +245,6 @@ scale_x_continuous(
     axis.ticks.y = element_blank(),
     axis.text.y = element_blank()) 
 
-
-tiff("plots/PGI_gender_SD.tiff", 
-     width = 179, 
-     height = 89, 
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-grid.arrange(
-  gender_SD, PGI_SD,
-  ncol = 2,
-  widths = c(1, 1))
- 
-dev.off()
 
 
             ##### 2.3 gender-intercept slopes #####
@@ -306,7 +295,7 @@ density_data_empirical <- data.frame(
 
 
 # plot
-gender_int_plot <- ggplot() +
+fig1 <- ggplot() +
   geom_polygon(data = density_data_empirical,
                aes(x = x, y = y),
                fill = "grey",
@@ -337,16 +326,7 @@ gender_int_plot <- ggplot() +
     legend.margin = margin(t = -5, b = -18),
     plot.margin = margin(t = -8, r = 10, b = 20, l = 10))
 
-tiff("plots/figure1.tiff", 
-     width = 89, 
-     height = 89,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-gender_int_plot
-
-dev.off()
+ggsave("plots/fig1", plot = fig1, width = 89, height = 89, units = "mm", device = cairo_pdf)
 
 
           ##### 2.4 Noncog effect over gender gap #####
@@ -354,6 +334,16 @@ dev.off()
 # correlations between slope for NonCog and the gender-slope
 mult_gender_noncog_girls <- (cov_noncog_gender - (cov_noncoggender_gender)) / sd_gender
 mult_gender_noncog_boys <- (cov_noncog_gender + (cov_noncoggender_gender)) / sd_gender
+
+# empirical density from school_blups
+density_data <- density(school_blups$school_gender_gap)
+
+# scale density to be visible on the plot
+max_y_value <- 0.02
+df_density <- data.frame(
+  gender_gap = density_data$x,
+  density = density_data$y * max_y_value / max(density_data$y)
+)
 
 # create sequence of gender slope values in SD units
 sd_min <- (min(density_data$x) - mean_observed_gap) / sd_gender
@@ -377,17 +367,7 @@ df_lines <- data.frame(
 # squaring to get variance explained
 df_lines$expected_slope <- df_lines$expected_slope^2
 
-# empirical density from school_blups
-density_data <- density(school_blups$school_gender_gap)
-
-# scale density to be visible on the plot
-max_y_value <- 0.02
-df_density <- data.frame(
-  gender_gap = density_data$x,
-  density = density_data$y * max_y_value / max(density_data$y)
-)
-
-gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, color = gender)) +
+fig3 <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, color = gender)) +
   geom_line(linewidth = .5) +
   geom_ribbon(data = df_density, 
               aes(x = gender_gap, ymin = 0, ymax = density), 
@@ -399,14 +379,14 @@ gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, c
   labs(
     title = "",
     x = "School-level GPA gender gap",
-    y = "Variance explained in GPA by NonCog-PGI",
+    y = "Variance explained in GPA by NonCog",
     color = NULL
   ) +
   theme_minimal() +
   scale_x_continuous(limits = c(-.76, -.36),
                      breaks = seq(-.70, -.40, by = 0.1)) +
-  geom_segment(aes(x = mean_observed_gap, xend = mean_observed_gap, y = 0, yend = 0.036), 
-               linetype = "dashed", alpha = 1,color = "black",linewidth = .4)+
+annotate("segment", x = mean_observed_gap, xend = mean_observed_gap, y = 0, yend = 0.036, 
+         linetype = "dashed", color = "black", linewidth = .4) +
   annotate("text", x = mean_observed_gap, y = 0.037, label = "average GPA gender gap",
            size = figure_annotation_size-.5, hjust = .25, vjust = 0)+
   theme_sverdo()+
@@ -415,18 +395,8 @@ gender_noncog_plot <- ggplot(df_lines, aes(x = gender_gap, y = expected_slope, c
     legend.position = "bottom",
     legend.margin = margin(t = -5, b = -18),
     plot.margin = margin(t = -8, r = 10, b = 20, l = 10))
-  
 
-tiff("plots/figure4.tiff", 
-     width = 89, 
-     height = 89,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-gender_noncog_plot
-
-dev.off()
+ggsave("plots/fig3.pdf", plot = fig3, width = 89, height = 89, units = "mm", device = cairo_pdf)
  
 
           ##### 2.5 figure 2a #####
@@ -484,19 +454,6 @@ figure2a <- ggplot(school_blups_long, aes(x = Gender, y = nonCog_blup, fill = Ge
   hjust = 0,
   size = 2.2,
   color = "black")
-
-tiff("plots/figure2a.tiff", 
-     width = 89, 
-     height = 89,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-figure2a
-
-dev.off()
-
-
 
 
           ##### 2.6 df with predicted GPA #####
@@ -628,7 +585,7 @@ figure2b <- ggplot(plot_data_2b, aes(x = x_pos, y = Expected_GPA,
   hjust = 0.5,
   size = 2.2,
   fontface = "bold",
-  family = "serif",
+  family = "sans",
   color = "black") +
   #legend
   geom_point(data = data.frame(x = 0.12, y = -1.21),
@@ -667,18 +624,6 @@ figure2b <- ggplot(plot_data_2b, aes(x = x_pos, y = Expected_GPA,
   color = "black")
 
 
-tiff("plots/figure2b.tiff", 
-     width = 89, 
-     height = 89, 
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-figure2b
-
-dev.off()
-
-
           ##### 2.8 figure 2c_1 #####
 figure2c_1 <- ggplot(plot_data %>% filter(Gender == "Girls"),
                    aes(x = NonCog, y = Expected_GPA,
@@ -713,7 +658,7 @@ figure2c_1 <- ggplot(plot_data %>% filter(Gender == "Girls"),
   hjust = 0.5,
   size = 2.2,  
   fontface = "bold",
-  family = "serif",  
+  family = "sans",  
   color = "black") +
 
   geom_rect(data = data.frame(
@@ -737,7 +682,7 @@ figure2c_1 <- ggplot(plot_data %>% filter(Gender == "Girls"),
   aes(x = x, y = y, label = label),
   inherit.aes = FALSE,
   hjust = 0,
-  family = "serif",
+  family = "sans",
   size = 2,
   color = "black")
 
@@ -776,7 +721,7 @@ figure2c_2 <- ggplot(plot_data %>% filter(Gender == "Boys"),
   hjust = 0.5,
   size = 2.2,
   fontface = "bold",
-  family = "serif",
+  family = "sans",
   color = "black") +
 
   geom_rect(data = data.frame(
@@ -801,56 +746,32 @@ figure2c_2 <- ggplot(plot_data %>% filter(Gender == "Boys"),
   inherit.aes = FALSE,
   hjust = 0,
   size = 2,
-  family = "serif",
+  family = "sans",
   color = "black")
 
 
-          ##### 2.55. figure 2c ##### 
-
-
-tiff("plots/figure2c.tiff", 
-     width = 178, 
-     height = 89,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
-
-grid.arrange(
-  figure2c_1, figure2c_2,
-  ncol = 2,
-  widths = c(1, 1)
-)
-
-dev.off()
 
           ##### Fig 2 #####
 
 # tighten the margin between c_1 and c_2 specifically
-figure2c_1_tight <- figure2c_1 + theme(plot.margin = margin(t = 5.5, r = 2,   b = 5.5, l = 5.5))
-figure2c_2_tight <- figure2c_2 + theme(plot.margin = margin(t = 5.5, r = 5.5, b = 5.5, l = 2))
+figure2c_1_tight <- figure2c_1 + theme(plot.margin = margin(t = 15, r = 2,   b = 5.5, l = 5.5))
+figure2c_2_tight <- figure2c_2 + theme(plot.margin = margin(t = 15, r = 5.5, b = 5.5, l = 2))
 
-bottom_row <- plot_grid(figure2c_1_tight, figure2c_2_tight, ncol = 2, align = "hv")   # no label
+bottom_row <- plot_grid(figure2c_2_tight, figure2c_1_tight, ncol = 2, align = "hv")
 
 top_row <- plot_grid(figure2a, figure2b, ncol = 2, align = "hv",
                      labels = c("a", "b"),
-                     label_fontfamily = "serif",
+                     label_fontfamily = "sans",
                      label_fontface = "bold",
                      label_size = 18)
 
-full_plot <- plot_grid(top_row, bottom_row, nrow = 2,
+fig2 <- plot_grid(top_row, bottom_row, nrow = 2,
                        labels = c("", "c"),          # "" skips top row (already a/b), "c" tags bottom
-                       label_fontfamily = "serif",
+                       label_fontfamily = "sans",
                        label_fontface = "bold",
                        label_size = 18)
 
-tiff("plots/figure2.tiff",
-     width = 179,
-     height = 179,
-     units = "mm",
-     res = 600,
-     compression = "lzw")
-full_plot
-dev.off()
+ggsave("plots/fig2.pdf", plot = fig2, width = 179, height = 179, units = "mm", device = cairo_pdf)
 
         #### 3. CONFIDENCE INTERVALS FOR MODEL PARAMETERS ####
 
