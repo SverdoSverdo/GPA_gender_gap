@@ -459,21 +459,12 @@ teacher_edu_plot <- ggplot(pred_data_teacher_edu, aes(x = teacher_edu, y = predi
   scale_y_continuous(limits = c(-0.4, 0.8), breaks = seq(-0.4, 0.8, by = 0.2))
 
 
-tiff("plots/income_teacher_edu_sq.tiff", 
-     width = 180, 
-     height = 90,  
-     units = "mm", 
-     res = 600,
-     compression = "lzw")
+supp_fig4 <- grid.arrange(
+          school_income_plot, teacher_edu_plot,
+          ncol = 2
+          )
 
-
-grid.arrange(
-  school_income_plot, teacher_edu_plot,
-  ncol = 2
-)
-
-dev.off()
-
+ggsave("plots/suppfig.4pdf", plot = supp_fig4, wifth = 178, height = 89, units ="mm", device = cairo_pdf)
 
         #### 2. LINEAR TERMS EXTRACTION ####
 
